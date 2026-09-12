@@ -38,8 +38,9 @@ the demonstrated checklist is not mergeable.
 
 ## Browser surface (`browser: { status: "works", href }`)
 
-- [ ] Runs fully client-side on a bytes-level API: no filesystem access, files
-      never leave the machine, and heavy work runs in a Web Worker.
+- [ ] Stateless document operations run client-side on a bytes-level API.
+      Persistent database operations follow the additional checklist below.
+      Neither sends input data to a service; heavy work runs in a Web Worker.
 - [ ] The tool page exists at the registry `href`; cards, sub-bar tab, and the
       guide's "Try … online" button light up from the registry entry alone
       (verified by `scripts/check-registry-site.ts`).
@@ -47,3 +48,27 @@ the demonstrated checklist is not mergeable.
       functional spec exercises the page's happy path.
 - [ ] Multi-file downloads offer the bundled zip alongside individual files.
 - [ ] The operation's guide page has a section for the online tool.
+
+## Persistent database browser operations
+
+[ADR 0005](../adr/0005-persistent-database-imports.md) defines this storage
+contract. These checks supplement the browser checklist and do not require an
+analytics UI.
+
+- [ ] The page identifies the working database format and location, including
+      whether the working file differs from the selected or exported file
+- [ ] Creation, opening, incremental commits, close, and reopen are verified
+      against each advertised engine
+- [ ] Source reading, import staging, previews, and export avoid complete
+      workbook and database buffers
+- [ ] Cancellation and interrupted writes do not expose partially accepted
+      observations; a retry produces the tested idempotent result
+- [ ] Storage quota, permission, unsupported browser, and conflicting-writer
+      failures have actionable errors
+- [ ] Duplicate imports and intentional repeat deliveries have separate tests
+- [ ] Exported files reopen in an independent native engine; conversion checks
+      its declared type and constraint rules
+- [ ] Browser storage and engine assets are local; offline behavior and any
+      initial asset-loading requirements are documented
+- [ ] Tests cover disposal and cleanup without deleting saved databases or
+      selected source files

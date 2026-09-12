@@ -17,8 +17,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  portable:
+    name: Portable CLI (${{ matrix.os }}, Node 24)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm bundle:cli
+      - uses: actions/upload-artifact@v7
+        with:
+          name: portable-${{ matrix.os }}
+          path: packages/cli/dist-archives/*.zip
+          if-no-files-found: error
+
   publish:
     name: Publish to npm
+    needs: portable
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: npm
@@ -45,13 +72,12 @@ jobs:
       - name: Validate repository and package tarballs
         run: pnpm check
 
-      # Built and smoke-tested BEFORE publishing so a broken bundle
-      # configuration fails the run while nothing has reached npm yet,
-      # instead of leaving a published version without its release asset.
-      - name: Build and smoke-test the standalone CLI bundle
-        run: |
-          pnpm bundle:cli
-          node packages/cli/dist-bundle/consultchimps.mjs --version
+      - name: Download verified portable CLI archives
+        uses: actions/download-artifact@v8
+        with:
+          pattern: portable-*
+          path: portable-archives
+          merge-multiple: true
 
       - name: Configure release Git identity
         run: |
@@ -64,13 +90,8 @@ jobs:
       - name: Push release tags
         run: git push origin --tags
 
-      # Agents and locked-down environments can fetch one file instead of
-      # resolving packages: the standalone bundle compiles every runtime
-      # dependency into a single consultchimps.mjs that runs on Node 22+.
-      # Uploads only when the CLI tag points at THIS commit, meaning this
-      # run's publish created it, so a manifest-only push can never attach a
-      # bundle built from newer source to an older version's release.
-      - name: Attach the standalone CLI bundle to its release
+      # Attach assets only to a CLI release created from this source revision.
+      - name: Attach portable CLI archives to their release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -79,9 +100,9 @@ jobs:
           tag_commit="$(git rev-parse -q --verify "refs/tags/${tag}^{commit}" || true)"
           if [ -n "${tag_commit}" ] && [ "${tag_commit}" = "$(git rev-parse HEAD)" ]; then
             gh release create "${tag}" --verify-tag --title "${tag}" \
-              --notes "Standalone CLI: download consultchimps.mjs and run \`node consultchimps.mjs --help\` on Node.js 22 or later. No npm access required. Changelog: https://github.com/consultchimps/consultchimps/blob/main/packages/cli/CHANGELOG.md" \
+              --notes "Portable CLI: download the archive matching your operating system and architecture, extract it, and run \`node consultchimps.mjs --help\` on Node.js 24. Keep its node_modules directory beside the executable. No npm access is required on the destination machine. Changelog: https://github.com/consultchimps/consultchimps/blob/main/packages/cli/CHANGELOG.md" \
               || true
-            gh release upload "${tag}" packages/cli/dist-bundle/consultchimps.mjs --clobber
+            gh release upload "${tag}" portable-archives/*.zip --clobber
           else
             echo "No CLI release was published from this commit; skipping the bundle upload."
           fi

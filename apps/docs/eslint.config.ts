@@ -9,6 +9,7 @@ export default defineConfig([
     "blob-report/**",
     "out/**",
     "playwright-report/**",
+    "public/database-wasm/**",
     "test-results/**",
     "next-env.d.ts",
   ]),

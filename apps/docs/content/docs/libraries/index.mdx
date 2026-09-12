@@ -10,17 +10,17 @@ that can be reused in a server, desktop app, workflow runner, or another CLI.
 
 ## Package map
 
-| Package                   | Responsibility                                                 |
-| ------------------------- | -------------------------------------------------------------- |
-| `@consultchimps/core`     | Shared result contracts and structured errors                  |
-| `@consultchimps/files`    | File discovery and safe output handling                        |
-| `@consultchimps/tabular`  | Runtime-neutral table union, grouping, and column mapping      |
-| `@consultchimps/theme`    | Runtime-neutral palette model and colour validation            |
-| `@consultchimps/db`       | Local in-memory database, stable identifiers, and table bridge |
-| `@consultchimps/xlsx`     | Excel reading, writing, merging, consolidation, and splitting  |
-| `@consultchimps/pptx`     | PowerPoint template inspection and population                  |
-| `@consultchimps/pdf`      | PDF splitting and merging                                      |
-| `@consultchimps/messages` | Plain-language rendering of results and errors                 |
+| Package                   | Responsibility                                                    |
+| ------------------------- | ----------------------------------------------------------------- |
+| `@consultchimps/core`     | Shared result contracts and structured errors                     |
+| `@consultchimps/files`    | File discovery and safe output handling                           |
+| `@consultchimps/tabular`  | Runtime-neutral table union, grouping, and column mapping         |
+| `@consultchimps/theme`    | Runtime-neutral palette model and colour validation               |
+| `@consultchimps/db`       | Persistent SQLite/DuckDB databases, imports, and delivery history |
+| `@consultchimps/xlsx`     | Excel reading, writing, merging, consolidation, and splitting     |
+| `@consultchimps/pptx`     | PowerPoint template inspection and population                     |
+| `@consultchimps/pdf`      | PDF splitting and merging                                         |
+| `@consultchimps/messages` | Plain-language rendering of results and errors                    |
 
 ## Discover inputs
 
@@ -230,260 +230,121 @@ assigned in order rather than cycled.
 
 ## Build a local database
 
-`@consultchimps/db` holds a small relational database in memory on sql.js, with
-a schema model and a generated stable identifier for each record. It loads a
-database from bytes, runs the schema operations, and serializes back to bytes,
-so a workspace can save the database as one file.
+`@consultchimps/db` provides persistent SQLite and DuckDB operations. Its root
+entry holds schemas, import recipes, capture and delivery contracts, and
+operations shared by browser workers and Node.js. Use `@consultchimps/db/node`
+for filesystem factories and `@consultchimps/db/browser` for persistent browser
+storage adapters. Native and WebAssembly engine dependencies stay behind those
+runtime entries.
 
 ```ts
-import { Database } from "@consultchimps/db";
+import { inspectDatabase } from "@consultchimps/db";
+import { createDatabase, openDatabase } from "@consultchimps/db/node";
 
-const database = await Database.create();
-
-database.createTable({
-  name: "Customer",
-  columns: [
-    { name: "name", type: "text", nullable: false },
-    { name: "active", type: "boolean" },
-  ],
-  foreignKeys: [],
-  recordId: { prefix: "CUST", padding: 4 },
+const created = await createDatabase({
+  path: "inventory.duckdb",
+  format: "duckdb",
+  schema: {
+    version: 1,
+    tables: [
+      {
+        name: "datasets",
+        columns: [{ name: "name", type: "text", nullable: false }],
+        recordId: { prefix: "DS", padding: 6 },
+      },
+    ],
+  },
 });
+await created.database.close();
 
-const inserted = database.insertRecord("Customer", {
-  name: "North",
-  active: true,
-});
-console.log(inserted.recordId); // "CUST-0001"
-
-const bytes = database.serialize();
-const reopened = await Database.open(bytes); // schema and next id restored
-```
-
-Each table carries a **Record ID**: a human-readable, generated, immutable
-identifier (`CUST-0001`) stored in a unique text column that foreign keys
-reference. The prefix and zero-padding are configured per table, and the schema,
-that configuration, and the next-id counter are stored inside the database file,
-so reopening the bytes restores them.
-
-### Edit a record
-
-`updateRecord` writes to an existing record, found by its Record ID:
-
-```ts
-const updated = database.updateRecord("Customer", "CUST-0001", {
-  name: "Acme Holdings",
-  active: "no",
-});
-
-console.log(updated.values); // { name: "Acme Holdings", active: false }
-```
-
-It returns the values now stored, read back through their declared types, which
-is why `"no"` comes back as `false`: a caller that displays the record can show
-what the database kept rather than what it sent.
-
-Every value goes through the same conversion an insert uses, so the type rules
-are one set of rules rather than two. A value that does not fit the column is
-refused with a stable code (`DB_INVALID_NUMBER`, `DB_INVALID_BOOLEAN`) naming
-the table and column, and nothing is written. An unknown table, record, or
-column is refused the same way, and so is any attempt to change the Record ID,
-which is assigned once: it is `DB_RECORD_ID_IMMUTABLE` here, and a database
-trigger under that refuses it even to a raw statement.
-
-### Edit many records as one step
-
-`updateRecords` applies a batch of record updates in one transaction, which is
-what a pasted block or a dragged fill in a spreadsheet amounts to: tens or
-hundreds of cell writes made as a single movement. Each request goes through
-`updateRecord`, so the conversion and the Record ID rule are the single-record
-path's own.
-
-```ts
-import { updateRecords } from "@consultchimps/db";
-
-database.insertRecord("Customer", { name: "South", active: true }); // CUST-0002
-
-const outcomes = updateRecords(database, [
-  { table: "Customer", recordId: "CUST-0001", values: { active: "no" } },
-  { table: "Customer", recordId: "CUST-0002", values: { active: "maybe" } },
-]);
-
-for (const outcome of outcomes) {
-  if (outcome.accepted) {
-    console.log(outcome.recordId, outcome.values); // CUST-0001 { active: false }
-  } else {
-    console.log(outcome.recordId, outcome.code); // CUST-0002 DB_INVALID_BOOLEAN
-  }
+const database = await openDatabase({ path: "inventory.duckdb" });
+try {
+  const inspection = await inspectDatabase({ database });
+  console.log(inspection.tables);
+} finally {
+  await database.close();
 }
 ```
 
-Application is partial and the commit is atomic. A value the schema refuses is
-reported against its own request, as data rather than as a thrown error, so a
-caller across a worker boundary can show it against the cell it belongs to, and
-the batch carries on; the accepted writes then commit together. That is what a
-spreadsheet does, and the alternative was rejected: all-or-nothing would cost
-the caller every accepted write in a two hundred cell paste for one bad value. A
-failure that is not a refusal, one nobody planned for, rolls the whole
-transaction back and propagates. An empty batch writes nothing and reports
-nothing.
+Import operations compose as `prepareImport`, `inspectImport`, `resolveImport`,
+and `applyImport`. A prepared import owns a separate durable staging database;
+approval refers to its revision and target database. Use
+`resolveImport({ database, prepared, decisions, rebase: true })` to explicitly
+re-review a saved capture against a newer database baseline. Use
+`replaceImportRecipe({ database, prepared, recipe, rebase: true })` when the new
+recipe replaces all prior routes. It excludes omitted captured selections and
+stored routes that did not match a captured source.
+`inspectAppliedImportPlan({ database, planId, planRevision })` reads its applied
+recipe, decisions, and source bindings from the working database, including
+after the private plan file has been removed. `createWorkbookImportSource`
+bridges the streaming Excel reader into this pipeline. Other adapters can supply
+an `ImportSource` with random-access bytes and bounded region readers without
+importing CLI or browser code.
 
-`readRecords` reads a table's records, the Record ID first in every row. Pass
-options to narrow it: `columns` reads only the named columns, matched like every
-other identifier, and `limit` reads at most that many records in storage order.
-An unknown or repeated column name, or a limit that is not a whole number within
-the safe integer range, is refused with a stable error rather than guessed at.
+Call `inspectImport({ database, prepared, page: { limit: 20 } })` to preview
+staged rows and reused captures. The database must have the plan's target ID.
+Without `database`, the result includes staged examples and
+`DB_PREVIEW_DATABASE_REQUIRED` entries in `previewWarnings` for reused
+selections. Pages contain at most 100 examples. Pass a returned `nextCursor` as
+`page.cursor` to continue; set both `page.source` and `page.selection` to filter
+one captured region.
 
-```ts
-// The first ten records, Record ID and name only.
-const recent = database.readRecords("Customer", {
-  columns: ["name"],
-  limit: 10,
-});
-```
+For a saved Node.js plan, call `prepareImportFile` from `@consultchimps/db/node`
+with `path`, `database`, `sources`, `recipe`, and `baselineRevision`. Optional
+fields are `overwrite`, `protectedInputPaths`, `signal`, and `onProgress`. It
+captures into a separate staging file, closes that file, and publishes it after
+preparation succeeds. Capture or source verification failures and cancellation
+before publication preserve an existing destination. The result contains the
+plan reference and final file artifact; use `openPreparedImport({ path })`
+before further inspection or application. List filesystem-backed source, recipe,
+and context paths in `protectedInputPaths`; opaque byte sources do not expose
+their original paths.
 
-### Bridge to the table model
+`planSchema` and `applySchema` manage additive definitions. `recordDelivery` and
+`listDeliveries` keep delivery events distinct from source captures. These
+operations return structured values; file-producing operations identify their
+artifacts. Counts which may exceed JavaScript's exact integer range use
+`bigint`.
 
-The database exchanges rows with `@consultchimps/tabular` in both directions, so
-it can feed the existing table operations and be fed rows in return:
+In the browser runtime, `openDatabase({ name, readonly: true })` opens a
+read-only working copy for inspection or export. `exportDatabase` refuses a
+nonempty `RandomAccessFile` destination unless `overwrite: true` is supplied.
+The caller owns that destination and must provide storage separate from the
+working database; matching filenames alone do not establish file identity. Call
+`discardPreparedImport({ name })` to remove a closed private plan that the
+caller created and no longer needs. It rejects an open plan, database, or
+unrecognized artifact, and it does not remove database working copies.
 
-```ts
-import { databaseTableToTable, addRecordsFromTable } from "@consultchimps/db";
+The former `Database.create()`, byte-based `Database.open()`, `serialize()`, and
+editable grid helpers have been removed from the spike. Open persistent handles
+and close them explicitly. The
+[data workspace guide](/docs/tools/data-workspace) explains recipe, schema,
+delivery, and browser-copy semantics.
 
-// A database table out as a Table (Record ID column first).
-const table = databaseTableToTable(database, "Customer");
+### Stream workbook regions
 
-// A Table in as records, generating a fresh Record ID for each row.
-addRecordsFromTable(database, "Customer", table);
-```
+`@consultchimps/xlsx/stream` accepts a `RandomAccessSource` from
+`@consultchimps/core` and a scratch-file factory. `inspectWorkbookStream` reads
+workbook metadata. `openWorkbookStream` shares a ZIP session and scratch-backed
+shared-string storage across region readers. Use `openRegion` with a worksheet
+and header row, named table, named range, or explicit rectangle, then consume
+`batches` and close the reader and session.
 
-### Import a table of values
+Numeric cells retain their source token; formula cells distinguish cached values
+from missing caches. Scratch storage prevents a workbook's shared-string count
+from becoming an equally large JavaScript array. Expanded ZIP limits, cell-size
+limits, cancellation, and CRC verification protect the streaming boundary.
 
-The import half is pure and runtime-neutral, so the same call creates the same
-tables from a browser worker or from a terminal. `inferColumnTypes` decides each
-column's type from its own values, and `importTable` creates the table and fills
-it, generating a Record ID for every row:
+For numeric date cells, the streaming reader preserves a timestamp at midnight
+when an explicit format code or a locale-independent built-in time format
+declares a time component. Locale-dependent built-in format IDs without an
+explicit code do not provide enough information to infer that component.
 
-```ts
-import {
-  importTable,
-  inferColumnTypes,
-  parseCsvTable,
-  suggestRecordIdPrefix,
-  suggestTableName,
-} from "@consultchimps/db";
-import { readWorkbookTables } from "@consultchimps/xlsx";
-
-// A worksheet, or comma-separated text read as a Table of text values.
-const [worksheet] = await readWorkbookTables("customers.xlsx");
-const orders = parseCsvTable("Reference,Quantity\n007,3\n008,11\n");
-
-// What the types would be, before anything is created.
-console.log(inferColumnTypes(orders));
-// [{ name: "Reference", type: "text", valueCount: 2 },
-//  { name: "Quantity", type: "integer", valueCount: 2 }]
-
-const name = suggestTableName("Customer List"); // "Customer_List"
-const imported = importTable(database, worksheet, {
-  name,
-  recordId: { prefix: suggestRecordIdPrefix(name), padding: 4 },
-});
-console.log(imported.rowCount, imported.firstRecordId); // 2 "CL-0001"
-```
-
-A column takes a type only when every value that is not blank fits it:
-
-| Type      | When                                                               |
-| --------- | ------------------------------------------------------------------ |
-| `boolean` | every value is true, false, yes, or no, in any case                |
-| `date`    | every value is an ISO 8601 date or timestamp naming a real instant |
-| `integer` | every value is a whole number that reads back unchanged, and fits  |
-| `real`    | every value is a number that reads back unchanged                  |
-| `text`    | anything else, and a column with no values in it                   |
-
-Nothing is guessed, and nothing is quietly rounded. Both numeric rules run the
-same test: the text has to read back as the number it wrote. So a padded
-reference code (`007`), an exponent form (`1e5`), a grouped number (`1,000`), a
-whole number past the range stored exactly, and a decimal carrying more digits
-than a number can hold (`0.12345678901234567890`) all stay text, as do a value
-that overflows to infinity and one that underflows to zero. A whole number also
-has to fit the range an integer column stores exactly, which is the narrower of
-the two.
-
-A timestamp is judged as one value rather than part by part, so `24:00` is the
-end of a day but `24:30` is nothing, `:60` is a leap second only at `23:59`, and
-an offset of `+99:99` is not an offset. A `date` column holds that spelling and
-no other: `isIsoDateText` is the rule, and it is the same rule inference used to
-decide the column was a date, so `insertRecord` refuses anything else rather
-than storing text a later read cannot trust. Surrounding spaces are removed
-before the value is judged and stored, so `" 2026-01-31 "` is stored as
-`2026-01-31`, and a cell holding nothing but spaces is stored as no value at
-all. A text column keeps its content exactly as it was read. A date written any
-other way (`01/02/2026`) stays text, because there is no way to tell a January
-date from a February one without guessing a convention the file never stated. So
-does a column whose values disagree: `1` beside `yes` is text.
-
-`parseCsvTable` follows RFC 4180 and states its whole contract in the module's
-documentation: what it accepts, what it refuses with a stable error code (text
-after a closing quote, an unclosed quoted value, a value no header names), and
-what it tolerates on purpose (a quote that does not start a field, a short row,
-a trailing separator, a blank row).
-
-Column names are derived in the same step that numbers repeated ones, so a name
-is inside the limit by construction. A header longer than a column name may be
-is shortened first, at a whole-character boundary and with room left for the
-number a duplicate may need, and the numbering then runs over names that already
-fit. Headers that differed only past the cut collide and are numbered. No value
-is lost: every column is still stored, and `ImportedTable.renamedColumns`
-reports each header that ended up under a different name, so the change is
-visible rather than silent. Shortening the header and then checking the limit
-would be two steps in two layers, and two copies of a 200-character header would
-fail between them, over a column name nobody can edit.
-
-`importTables` creates several tables in one call, which is what a multi-sheet
-workbook needs. Names, Record ID prefixes, and column names are all checked
-first, and the creation and the rows then run inside a single transaction, so a
-failure part way through leaves the database exactly as it was rather than half
-imported. A table name that the database already reads as the same name, under
-the case-insensitive rules SQLite applies, is refused before anything is
-written. A Record ID column in the input is left out rather than refused, since
-identifiers are always generated, so a table read back out of a database can be
-imported again as a copy.
-
-A source's `columns` must not repeat a name exactly. A `Table` row is an object
-keyed by column name, so a list such as `["Amount", "Amount"]` describes a
-second column no row can answer: reading it returns the first column's value,
-and the import would store that value twice under two names. There is nothing in
-the source that says what the second column held, so it is refused with
-`DB_IMPORT_DUPLICATE_SOURCE_COLUMN` rather than guessed at. Names that differ
-only in case, or in the characters the identifier fold ignores, are two
-properties carrying two values: those are numbered and reported in
-`renamedColumns`, not refused. Every reader here already makes its headers
-unique, so this concerns tables a caller builds itself.
-
-`importedTableSchema` returns the `TableSchema` an import would create without
-creating it, and refuses exactly what the import refuses: a source with no
-columns of its own, one whose only column is the Record ID, one that repeats a
-column name, a table name the engine will not take, and a Record ID
-configuration that cannot number anything all raise from the preview as well,
-because both halves ask the same plan. Only the checks that need the workspace,
-such as a name it already holds, wait for the import itself.
-`@consultchimps/db/schema` publishes the schema model on its own, with no
-database engine behind it, for a caller that only needs the identifier rules
-(`identifierKey`, `sameIdentifier`, `assertSafeIdentifier`,
-`MAX_RECORD_ID_PADDING`).
-
-### Configure sql.js in a browser worker
-
-In Node the WebAssembly binary resolves beside the installed package, so no
-configuration is needed. In a browser worker, pass `locateFile` (or
-`wasmBinary`) so sql.js fetches the wasm from wherever the app serves it:
-
-```ts
-const database = await Database.create({
-  locateFile: (file) => `/sql-wasm/${file}`,
-});
-```
+On Node.js, `openRandomAccessSource` and `createScratchDirectory` from
+`@consultchimps/files` supply these contracts. `verifyUnchanged` detects edits
+or replacement of the opened source. `planFilePublication` and
+`publishStagedFile` validate destinations and publish staged output without
+silently overwriting an input.
 
 ## Read workbooks without writing anything
 

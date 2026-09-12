@@ -1,4 +1,5 @@
 export { safeNameFragment, truncateToUtf8Bytes } from "./names.js";
+export type { RandomAccessFile, RandomAccessSource } from "./bytes.js";
 
 export type ArtifactKind = "file" | "directory";
 

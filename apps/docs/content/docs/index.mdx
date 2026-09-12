@@ -6,6 +6,7 @@ icon: BookOpen
 
 import {
   Blocks,
+  Database,
   Files,
   Globe,
   Presentation,
@@ -32,7 +33,7 @@ differ by design and are called out in each tool's guide.
 <Cards>
   <Card
     title="Use the tools online"
-    description="Split and merge PDFs, split, merge, consolidate, or inspect Excel workbooks, and inspect or populate PowerPoint templates, in your browser. Files never leave the tab"
+    description="Work with Excel, PDF, and PowerPoint files, or import workbooks into a persistent local database, in your browser"
     href="/tools"
     icon={<Globe />}
   />
@@ -79,6 +80,12 @@ differ by design and are called out in each tool's guide.
     icon={<Files />}
   />
   <Card
+    title="Import workbooks into a database"
+    description="Create SQLite or DuckDB files, review imports, and record delivery history"
+    href="/docs/tools/data-workspace"
+    icon={<Database />}
+  />
+  <Card
     title="Compose with libraries"
     description="Import the file, table, workbook, PowerPoint, and PDF modules directly"
     href="/docs/libraries"
@@ -112,7 +119,8 @@ the stable result shape directly.
 ## Design principles
 
 - **Local-first:** client files remain on the machine running the operation.
-- **Immutable inputs:** the toolkit refuses to overwrite source files.
+- **Immutable source documents:** database writes are explicit operations;
+  imports leave source workbooks unchanged.
 - **Composable modules:** each capability is useful without the CLI.
 - **Explicit provenance:** consolidated rows can retain file, sheet, and row.
 - **Plain-language guidance:** every CLI tool explains its results and next

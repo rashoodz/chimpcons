@@ -158,6 +158,14 @@ try {
   );
 
   const cliMetadata = readPackageMetadata("cli");
+  execFileSync(
+    npmCommand,
+    [...npmArguments, "rebuild", "better-sqlite3", "--no-audit", "--no-fund"],
+    {
+      cwd: consumerDirectory,
+      stdio: "inherit",
+    },
+  );
   const cliExecutable = path.join(
     consumerDirectory,
     "node_modules",
@@ -178,6 +186,33 @@ try {
     throw new Error(
       `CLI reported ${installedVersion}; expected ${cliMetadata.version}.`,
     );
+  }
+
+  for (const format of ["sqlite", "duckdb"]) {
+    const output = path.join(consumerDirectory, `database-smoke.${format}`);
+    const command =
+      process.platform === "win32" ? process.execPath : cliExecutable;
+    const prefix = process.platform === "win32" ? [cliExecutable] : [];
+    execFileSync(command, [...prefix, "--json", "db", "create", "-o", output], {
+      cwd: consumerDirectory,
+      stdio: "pipe",
+    });
+    const inspection: unknown = JSON.parse(
+      execFileSync(command, [...prefix, "--json", "db", "inspect", output], {
+        cwd: consumerDirectory,
+        encoding: "utf8",
+      }),
+    );
+    if (
+      typeof inspection !== "object" ||
+      inspection === null ||
+      !("ok" in inspection) ||
+      inspection.ok !== true
+    ) {
+      throw new Error(
+        `The installed CLI could not reopen its ${format} database.`,
+      );
+    }
   }
 
   const packageNames = libraryDirectories.map(

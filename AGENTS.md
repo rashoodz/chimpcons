@@ -111,22 +111,22 @@ Package boundaries are public architectural boundaries, not just folders.
 Put behavior at the lowest reusable layer and keep the CLI as an adapter.
 -->
 
-| Path                | Responsibility                                                 |
-| ------------------- | -------------------------------------------------------------- |
-| `packages/core`     | Shared errors, artifacts, operation results, and contracts     |
-| `packages/files`    | Input discovery and safe output-path handling                  |
-| `packages/tabular`  | Runtime-neutral table models and table operations              |
-| `packages/theme`    | Runtime-neutral palette model and colour validation            |
-| `packages/db`       | Local in-memory database, stable identifiers, and table bridge |
-| `packages/xlsx`     | Excel workbook reading, writing, consolidation, and splitting  |
-| `packages/pptx`     | PowerPoint template inspection and population                  |
-| `packages/pdf`      | PDF splitting and merging                                      |
-| `packages/messages` | Plain-language rendering of operation results and errors       |
-| `packages/cli`      | Command parsing, option mapping, and user-facing CLI output    |
-| `apps/docs`         | Next.js and Fumadocs documentation site                        |
-| `scripts`           | Repository-wide verification and packaging utilities           |
-| `.github`           | CI, security analysis, issue templates, and release automation |
-| `.changeset`        | Pending public package release notes and version intent        |
+| Path                | Responsibility                                                         |
+| ------------------- | ---------------------------------------------------------------------- |
+| `packages/core`     | Shared errors, artifacts, operation results, and contracts             |
+| `packages/files`    | Input discovery and safe output-path handling                          |
+| `packages/tabular`  | Runtime-neutral table models and table operations                      |
+| `packages/theme`    | Runtime-neutral palette model and colour validation                    |
+| `packages/db`       | Persistent SQLite/DuckDB files, schemas, imports, and delivery history |
+| `packages/xlsx`     | Excel workbook reading, writing, consolidation, and splitting          |
+| `packages/pptx`     | PowerPoint template inspection and population                          |
+| `packages/pdf`      | PDF splitting and merging                                              |
+| `packages/messages` | Plain-language rendering of operation results and errors               |
+| `packages/cli`      | Command parsing, option mapping, and user-facing CLI output            |
+| `apps/docs`         | Next.js and Fumadocs documentation site                                |
+| `scripts`           | Repository-wide verification and packaging utilities                   |
+| `.github`           | CI, security analysis, issue templates, and release automation         |
+| `.changeset`        | Pending public package release notes and version intent                |
 
 The xlsx package has a binding architecture document at
 `packages/xlsx/ARCHITECTURE.md`. Read it before changing that package; it
@@ -593,6 +593,13 @@ Treat the CI gate strictly:
 - If GitHub reports conflicting status signals, inspect the required status
   checks, check runs, and latest head SHA before deciding the pull request is
   ready.
+- Read pull request reviews and inline review threads separately from CI check
+  results. Passing CI does not mean an automated code review has no findings.
+- When a configured reviewer starts after a draft is marked ready, wait for its
+  result before reporting review completion. Assess actionable findings, add
+  regressions for accepted fixes, and verify them on the pull request branch.
+- Recheck review activity after pushing fixes. Resolve a thread only after its
+  finding is fixed and verified, or its rejection is supported by evidence.
 - Merge with failing or incomplete required checks only under a documented
   exception permitted by repository policy and branch protection, after the user
   explicitly authorizes it with the exact non-green checks and rationale
@@ -620,6 +627,13 @@ Never commit or expose:
 
 Additional safeguards:
 
+- Treat conversations as private design input. Publish general requirements and
+  explicitly synthetic examples, not a contributor's machine specifications,
+  personal paths, engagement details, delivery schedules, or project counts.
+- Apply this rule to plans, glossaries, benchmark reports, fixtures, and pull
+  request descriptions. Do not label copied private facts as synthetic. Keep
+  software versions and generated measurements when useful, but publish personal
+  hardware or deployment details only with explicit authorization.
 - Do not print secrets in commands, logs, test snapshots, errors, or pull
   request text.
 - Use credential managers and CI secret stores rather than checked-in values.

@@ -28,6 +28,7 @@ import {
 import { Command, CommanderError } from "commander";
 
 import { formatWorkbookDescription } from "./describe-report.js";
+import { registerDbCommands } from "./commands/db.js";
 import { createCliProgress, finishActiveProgress } from "./progress.js";
 import {
   withoutTerminalControls,
@@ -151,7 +152,7 @@ function collectName(value: string, previous: string[] | undefined): string[] {
 // separating prose from data. "ok" discriminates the two shapes, which lets
 // automation branch on success or failure without inspecting the exit code.
 function jsonEnvelope(payload: unknown): string {
-  return `${JSON.stringify(payload)}\n`;
+  return `${JSON.stringify(payload, (_key, value: unknown) => (typeof value === "bigint" ? value.toString() : value))}\n`;
 }
 
 function printJsonResult(result: unknown): void {
@@ -249,7 +250,7 @@ const cliVersion =
 program
   .name("consultchimps")
   .description(
-    "Clear, local-first tools that explain how they process your spreadsheets, presentations, and PDFs.",
+    "Local-first tools for spreadsheets, persistent databases, presentations, and PDFs.",
   )
   .version(cliVersion)
   .option(
@@ -260,6 +261,8 @@ program
     "after",
     `
 Quick start:
+  consultchimps db create -o inventory.duckdb
+  consultchimps db plan inventory.duckdb --input inventory.xlsx -o review.ccplan
   consultchimps sheets inspect clients.xlsx
   consultchimps sheets consolidate "inputs/*.xlsx" -o combined.xlsx
   consultchimps sheets merge "inputs/*.xlsx" -o all-sheets.xlsx
@@ -962,6 +965,16 @@ What happens:
     progress.finish();
     printResult(result, program.opts<GlobalOptions>().json === true);
   });
+
+registerDbCommands(program, {
+  json: () => program.opts<GlobalOptions>().json === true,
+  result: (result) =>
+    printResult(result, program.opts<GlobalOptions>().json === true),
+  data: (value, humanText) => {
+    if (program.opts<GlobalOptions>().json === true) printJsonResult(value);
+    else process.stdout.write(withoutTerminalControlsInProse(humanText));
+  },
+});
 
 try {
   await program.parseAsync(process.argv);

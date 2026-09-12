@@ -19,32 +19,33 @@ documentation site renders its cards and tabs from;
 `scripts/check-readme-operations.ts` fails `pnpm docs:check`, and therefore
 `pnpm check` and CI, when this table and that registry disagree.
 
-| Operation                     | CLI   | Library | Browser |
-| ----------------------------- | ----- | ------- | ------- |
-| Consolidate spreadsheets      | Works | Works   | Works   |
-| Merge workbook tabs           | Works | Works   | Works   |
-| Split spreadsheets            | Works | Works   | Works   |
-| Populate PowerPoint templates | Works | Works   | Works   |
-| Split PDF pages               | Works | Works   | Works   |
-| Merge PDF packs               | Works | Works   | Works   |
-| Inspect PowerPoint templates  | Works | Works   | Works   |
-| Inspect workbooks             | Works | Works   | Works   |
-| Unprotect Excel workbooks     | Works | Works   | Works   |
+| Operation                        | CLI   | Library | Browser |
+| -------------------------------- | ----- | ------- | ------- |
+| Consolidate spreadsheets         | Works | Works   | Works   |
+| Merge workbook tabs              | Works | Works   | Works   |
+| Split spreadsheets               | Works | Works   | Works   |
+| Populate PowerPoint templates    | Works | Works   | Works   |
+| Split PDF pages                  | Works | Works   | Works   |
+| Merge PDF packs                  | Works | Works   | Works   |
+| Inspect PowerPoint templates     | Works | Works   | Works   |
+| Inspect workbooks                | Works | Works   | Works   |
+| Unprotect Excel workbooks        | Works | Works   | Works   |
+| Import workbooks into a database | Works | Works   | Works   |
 
 ## Packages
 
-| Package                   | Responsibility                                         |
-| ------------------------- | ------------------------------------------------------ |
-| `@consultchimps/core`     | Shared errors, artifacts, and operation results        |
-| `@consultchimps/files`    | Input discovery and safe output-path handling          |
-| `@consultchimps/tabular`  | Runtime-neutral table model, union, and column mapping |
-| `@consultchimps/theme`    | Runtime-neutral palette model and colour validation    |
-| `@consultchimps/db`       | Local in-memory database, stable IDs, and table bridge |
-| `@consultchimps/xlsx`     | Excel workbook input and output                        |
-| `@consultchimps/pptx`     | PowerPoint template inspection and population          |
-| `@consultchimps/pdf`      | PDF split and merge operations                         |
-| `@consultchimps/messages` | Plain-language rendering of results and errors         |
-| `consultchimps`           | Command-line interface                                 |
+| Package                   | Responsibility                                                             |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `@consultchimps/core`     | Shared errors, artifacts, and operation results                            |
+| `@consultchimps/files`    | Input discovery and safe output-path handling                              |
+| `@consultchimps/tabular`  | Runtime-neutral table model, union, and column mapping                     |
+| `@consultchimps/theme`    | Runtime-neutral palette model and colour validation                        |
+| `@consultchimps/db`       | Persistent SQLite and DuckDB files, schemas, imports, and delivery history |
+| `@consultchimps/xlsx`     | Excel workbook input and output                                            |
+| `@consultchimps/pptx`     | PowerPoint template inspection and population                              |
+| `@consultchimps/pdf`      | PDF split and merge operations                                             |
+| `@consultchimps/messages` | Plain-language rendering of results and errors                             |
+| `consultchimps`           | Command-line interface                                                     |
 
 ## Install
 
@@ -58,14 +59,19 @@ Run the CLI without keeping a global installation:
 npx consultchimps@latest --help
 ```
 
-No npm access? Every release also ships a standalone bundle. Download
-`consultchimps.mjs` from the
+For releases containing the persistent database commands, portable CLI archives
+include the native engine dependencies. Download the archive matching your
+operating system, architecture, and Node major from the
 [latest release](https://github.com/consultchimps/consultchimps/releases/latest)
-and run it directly:
+and extract it. Keep `node_modules` beside `consultchimps.mjs`, then run:
 
 ```bash
 node consultchimps.mjs --help
 ```
+
+The portable build targets Node 24. The npm distribution supports the package's
+declared Node versions and installs the corresponding native bindings. Older
+releases' single-file bundles do not include the new database commands.
 
 Or install it globally:
 

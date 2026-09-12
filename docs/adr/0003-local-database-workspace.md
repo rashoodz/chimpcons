@@ -1,5 +1,10 @@
 # Local database workspace
 
+The storage and save model below is superseded by
+[ADR 0005](0005-persistent-database-imports.md). Analytics UI work is paused
+indefinitely. The remaining text records the spike's design history and does not
+require preserving its APIs or in-memory lifecycle.
+
 Status: Proposed (draft for agreement). The stack and framing decisions below
 were each agreed on their own before being written here. Two decisions stay
 deferred to the build item that needs them: the computed-column formula

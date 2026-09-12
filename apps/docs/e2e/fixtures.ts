@@ -68,6 +68,17 @@ export interface UncalculatedFormulaCell {
   readonly formula: string;
 }
 
+/** A formula and its last numeric result, both stored as workbook text. */
+export interface CachedNumberFormulaCell {
+  readonly formula: string;
+  readonly cachedNumber: string;
+}
+
+/** A numeric cell whose source spelling must not pass through JavaScript number. */
+export interface ExactNumberCell {
+  readonly numericText: string;
+}
+
 /**
  * A cell holding an error value: `#REF!`, `#DIV/0!` and their kind, which the
  * format stores as `t="e"`. A reader built on a spreadsheet engine sees the
@@ -105,6 +116,8 @@ export type WorksheetCellFixture =
   | number
   | string
   | UncalculatedFormulaCell
+  | CachedNumberFormulaCell
+  | ExactNumberCell
   | ErrorValueCell
   | DateSerialCell
   | DeclaredDateCell;
@@ -202,15 +215,20 @@ function worksheetXml(
           const address = `${columnLetter(columnIndex)}${reference}`;
           if (typeof value === "object") {
             if ("formula" in value) {
-              // A formula with no <v> beside it: the value it would produce is
-              // not in the file.
-              return `<c r="${address}"><f>${escapeXml(value.formula)}</f></c>`;
+              const cached =
+                "cachedNumber" in value
+                  ? `<v>${escapeXml(value.cachedNumber)}</v>`
+                  : "";
+              return `<c r="${address}"><f>${escapeXml(value.formula)}</f>${cached}</c>`;
             }
             if ("error" in value) {
               return `<c r="${address}" t="e"><v>${escapeXml(value.error)}</v></c>`;
             }
             if ("date" in value) {
               return `<c r="${address}" t="d"><v>${escapeXml(value.date)}</v></c>`;
+            }
+            if ("numericText" in value) {
+              return `<c r="${address}"><v>${escapeXml(value.numericText)}</v></c>`;
             }
             // Style 1 is the date format the styles part declares.
             return `<c r="${address}" s="1"><v>${value.serial}</v></c>`;

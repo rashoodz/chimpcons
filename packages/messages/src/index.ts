@@ -202,6 +202,63 @@ function hasMappingDraft(result: OperationResult): boolean {
 }
 
 const operationExplanations: Readonly<Record<string, OperationExplanation>> = {
+  "db.create": {
+    title: "Your persistent database was created.",
+    summary: (result) => [
+      `The database contains ${quantity(metric(result, "tablesCreated"), "declared table")}. Subsequent database operations can reopen this file.`,
+    ],
+    nextSteps: () => [
+      "Inspect the database or prepare a workbook import before adding observations.",
+    ],
+  },
+  "db.prepare": {
+    title: "Your workbook import is captured for review.",
+    summary: (result) => [
+      `ConsultChimps captured ${quantity(metric(result, "rowsCaptured"), "source row")} in private staging storage.`,
+      "The import has not added these rows to accepted database tables. The original workbooks were not changed.",
+    ],
+    nextSteps: () => [
+      "Review the proposed tables, types, mappings, and conflicts before applying the plan.",
+      "The saved plan can contain source values. Keep it with your confidential working files.",
+    ],
+  },
+  "db.apply": {
+    title: "Your database import was applied.",
+    summary: (result) => [
+      `ConsultChimps added ${quantity(metric(result, "rowsImported"), "observation")} and reused ${quantity(metric(result, "rowsReused"), "previously imported observation")}.`,
+      "Committed changes are stored in the working database. The original workbooks were not changed.",
+    ],
+    nextSteps: () => [
+      "Inspect the database and delivery history. You can reopen the database without importing the Excel files again.",
+    ],
+  },
+  "db.schema.apply": {
+    title: "Your database schema changes were applied.",
+    summary: () => [
+      "The approved table definitions were applied to the working database.",
+    ],
+    nextSteps: () => [
+      "Inspect the schema before preparing imports into its tables.",
+    ],
+  },
+  "db.delivery.record": {
+    title: "Your delivery was recorded.",
+    summary: () => [
+      "The delivery references existing source captures without adding their row values again.",
+    ],
+    nextSteps: () => [
+      "Review delivery history to see the submission context and referenced captures.",
+    ],
+  },
+  "db.export": {
+    title: "Your database copy was exported.",
+    summary: () => [
+      "The exported file is an independent copy. Later changes to the working database do not update it.",
+    ],
+    nextSteps: () => [
+      "Open the exported file with a tool that supports its format and verify the tables you need.",
+    ],
+  },
   "sheets.merge": {
     title: "Your Excel workbook merge is complete.",
     summary: (result) => [
@@ -408,6 +465,20 @@ const operationExplanations: Readonly<Record<string, OperationExplanation>> = {
 };
 
 const metricLabels: Readonly<Record<string, string>> = {
+  sourcesRead: "Source files with new captures",
+  sourcesReused: "Source files with reused captures",
+  rowsCaptured: "Source rows captured for review",
+  conflicts: "Import conflicts requiring review",
+  rowsImported: "Observations added to the database",
+  rowsReused: "Observations reused without duplication",
+  tablesCreated: "Database tables created",
+  columnsAdded: "Database columns added",
+  deliveriesRecorded: "Deliveries recorded",
+  deliveriesReused: "Previously recorded deliveries reused",
+  tablesConverted: "Database tables converted",
+  rowsConverted: "Database rows converted",
+  bytesWritten: "Bytes written to the exported database",
+  capturesLinked: "Source captures linked to the delivery",
   dataRows: "Data rows described",
   excelTables: "Excel Tables found",
   generatedSlides: "PowerPoint slides generated",
@@ -447,6 +518,11 @@ const metricLabels: Readonly<Record<string, string>> = {
 };
 
 function artifactType(artifact: Artifact): string {
+  if (artifact.mediaType === "application/vnd.sqlite3")
+    return "SQLite database";
+  if (artifact.mediaType === "application/vnd.duckdb") return "DuckDB database";
+  if (artifact.mediaType === "application/vnd.consultchimps.import-plan")
+    return "Private captured import plan";
   if (artifact.kind === "directory") {
     return "Folder";
   }
@@ -574,6 +650,20 @@ function recoverySteps(
       "The task was cancelled before it finished; no source file was changed.",
       "Output files completed before the cancellation may remain. Review and remove them if they are not wanted.",
       vocabulary.retryWhenReady,
+    ];
+  }
+  if (code === "DB_IMPORT_NEEDS_REVIEW" || code === "DB_STALE_IMPORT_PLAN") {
+    return [
+      "Inspect the saved import plan and its target database.",
+      "Resolve the reported conflicts or refresh the plan against the current database before applying it.",
+      "Keep the captured plan until the import has completed; it can contain data needed for review.",
+    ];
+  }
+  if (code?.startsWith("DB_")) {
+    return [
+      "Check the database format, schema, and import options named in the message.",
+      "Keep your source files and saved plan while correcting the problem.",
+      vocabulary.examplesReference,
     ];
   }
   if (code === "FILES_NOT_FOUND") {

@@ -1,117 +1,399 @@
 ---
 title: Data workspace
 description:
-  Keep a project's tables in one file, edit them in an Excel-like grid in the
-  browser, and save them back to a single file.
+  Create persistent SQLite and DuckDB databases, review Excel imports, and
+  record delivery history locally.
 icon: Database
 ---
 
-<Callout title="No installation needed">
-  [Use the workspace in your browser](/workspace). The whole workspace runs in
-  the page and nothing is uploaded: what you import and edit stays in the tab,
-  and a save writes only to a file on your own machine.
-</Callout>
+[Open the data workspace](/workspace) to create or open a local database, define
+tables, and import Excel workbooks. The CLI exposes the same operations under
+`consultchimps db`.
 
-The data workspace holds a small relational database for a project. You start
-one empty or open one you saved before, import the rows of a worksheet or a
-`.csv` file into it as a table, edit the records in a grid that behaves like a
-spreadsheet, and save the whole thing back to a single file. The file is an
-ordinary SQLite database, so anything that reads SQLite can read it too.
+The working database stores accepted rows and import history. Excel files are
+inputs, not the continuing source of truth. A saved import plan contains the
+captured values needed to review and apply an import after the original
+workbooks are no longer available.
 
-It is the stateful half of ConsultChimps. Every other tool here is stateless: it
-reads what you give it, produces its result, and keeps nothing between runs. The
-workspace keeps something: a file you come back to, edit in place, and put back
-in the shared folder it lives in. The design behind it is recorded in ADR 0003
-in the repository, and the library it is built on is described in
-[Build a local database](/docs/libraries#build-a-local-database).
+In the browser, reopen the working database after a reload and choose **Resume**
+under **Saved import reviews**. The workspace discovers its saved plans in
+browser storage and reconstructs the review from captured rows, so it does not
+need to read the Excel files again.
 
-## Start or open a workspace
+The browser disables application while destination, column mapping, or type
+decisions differ from the accepted review. Review the edited decisions again
+before applying them.
 
-A new workspace is empty. Opening one takes a `.sqlite`, `.sqlite3`, or `.db`
-file that the workspace saved before, or any SQLite database whose tables were
-created through the same library. Starting or opening another workspace replaces
-the one in the tab, so the page asks first when the current one holds changes
-that have not been saved. Following a link to another page of this site asks the
-same question in the page, and closing the tab or leaving the site raises the
-browser's own warning.
+## Choose a database format
 
-## Import a worksheet or a .csv file
+Use DuckDB for analytical SQL involving scans, joins, grouping, and calculated
+expressions. Use SQLite when compatibility with SQLite applications is the
+priority. Both are persistent file formats. Engine memory still holds working
+buffers, but opening and saving do not require a JavaScript copy of the whole
+database.
 
-Choose an Excel `.xlsx` or `.xlsm` workbook or a `.csv` file. A workbook offers
-its visible worksheets that hold rows under a header, and you pick the ones to
-import; hidden worksheets, and blank or header-only ones, are not offered. Each
-becomes one table, and you give each table a name, a Record ID prefix, and the
-padding for its counter before anything is written.
+In the browser, **Open database file** creates a working copy with a generated
+name by default. Enter an **Imported working copy name** to choose a name. To
+refresh a saved copy, enter its name and select **Replace an existing browser
+working copy with this name**. Replacement affects browser storage; the selected
+file stays unchanged. Leave replacement unchecked to keep an existing copy.
 
-Every row is given a **Record ID**: a short generated identifier such as
-`CUST-0001`, made from the prefix you chose and a counter zero-padded to the
-width you chose, which is four unless you change it, and can be zero for an
-identifier such as `CUST-1`. It is assigned once, never edited, and is what
-other tables refer to. Every column takes the type its own values agree on, one
-of text, whole number, number, yes or no, and date, or text when they do not. A
-worksheet holding cells whose formulas have no cached result, or cells holding
-an error value, is refused before anything is imported, and the page says how
-many such cells the worksheet holds, because a table with holes in it is not the
-table you saw in Excel. Open the workbook in Excel, recalculate, fix the errors,
-and save it before importing again.
+A file created by ConsultChimps includes ordinary data tables and reserved
+`_consultchimps` metadata tables. Keep the metadata when working in another
+application: it carries schema definitions, generated ID counters, source
+captures, and delivery history. Arbitrary third-party databases do not acquire
+this metadata merely by being opened.
 
-## Edit records in the grid
+Opening a managed database checks its supported format version and required
+internal tables and columns. If that structure is damaged, restore a verified
+copy before importing more data.
 
-The grid shows one table at a time. Double-click a cell, or press Enter on it,
-to edit it. Each edit is written to the workspace as you make it, and a value
-the column cannot hold is refused and explained against that cell, which keeps
-the value the workspace has until you deal with it. A column that refers to
-another table is edited through a picker of that table's records.
+This phase supplies database management and import operations. A general query
+editor, editable analytics grid, charts, automatic record reconciliation, and
+master dataset maintenance are outside this phase.
 
-The grid works the way a spreadsheet does:
+## Create a database and capture workbooks
 
-- **Select** a rectangle by dragging or shift-clicking, several with ctrl-click,
-  a column by clicking its header, and extend a selection with shift and the
-  arrow keys.
-- **Copy and paste** as the tab-separated text Excel reads and writes, so a
-  range copied here pastes into Excel and a range copied from Excel pastes here.
-  A copy or a paste works on one selected rectangle, and is refused while
-  several are selected. A single value pastes into every selected cell; a block
-  that tiles the selection tiles it; anything else is written from the top left
-  cell. A paste that would run past the last record or the last column is
-  refused whole, because records and columns are not added by a paste.
-- **Fill** by dragging the handle on the corner of a selection. Numbers written
-  as plain decimals with a constant difference extend it, and a number written
-  in exponent form repeats; dates sharing the same time of day step by a
-  constant number of months when every date falls on the same day of the month,
-  the 28th or earlier, and otherwise by a constant number of days, and a single
-  date steps by one day; dates with differing times of day repeat; text ending
-  in a number steps the number when the selected values share the same text
-  before it and step by a constant difference, and a single such value steps by
-  one; everything else repeats. A column that refers to another table is copied
-  rather than counted, because a Record ID is a name and not a number.
+```bash
+consultchimps db create -o inventory.duckdb
+consultchimps db plan inventory.duckdb --input north=north.xlsx --input south=south.xlsx -o review.ccplan
+consultchimps db inspect review.ccplan
+consultchimps db apply inventory.duckdb --plan review.ccplan
+consultchimps db inspect inventory.duckdb
+```
 
-A paste or a fill is one movement, so it reaches the workspace as one step: the
-cells it could write are written together, and any it could not are explained
-against themselves. One movement covers at most 5,000 cells, far more than a
-hand makes; a larger one is refused whole. The Record ID column is never a write
-target.
+Commands print labeled summaries, review details, and next steps by default. Add
+`--json` for structured output used by scripts.
 
-## Save the workspace
+Use `.sqlite` for a SQLite database. A filename without a recognized extension
+requires `--format sqlite` or `--format duckdb`. Creation refuses an existing
+output unless `--force` is supplied. Replacing an input with an output is
+refused even with `--force`.
 
-Saving writes the workspace back to a single file. In a browser with the File
-System Access API, which today means Chromium browsers such as Chrome and Edge,
-Save writes back to the same file you opened, in place, and Save as asks where
-to put it; after a Save as, Save writes to the file you chose there, and the
-first Save of a new workspace asks where to put it, since there is no file yet.
-In every other browser the page downloads a copy, because the browser gives it
-no way to write the original: the download lands wherever your browser puts
-downloads, and it is up to you to move it into the shared folder in place of the
-file you opened.
+`db plan` writes a private staging file; it does not add the captured rows to
+the working tables. `db inspect` shows its routes, column mappings, row counts,
+conflicts, and a bounded preview using a read-only handle. `db apply` approves a
+resolved plan and commits its rows. Keep `.ccplan` files as carefully as the
+workbooks because they contain source values.
 
-The file is the only copy that matters. Two people can take turns on a file in a
-shared folder, one at a time. Editing is single-writer by design: the workspace
-does not merge two people's edits to the same file.
+An already-ready plan is opened read-only during `db apply`. A plan that still
+needs automatic resolution is reopened writable so its review can be updated.
 
-## Browser support
+For a repeated import, preview the reused rows with
+`consultchimps db inspect review.ccplan --database inventory.duckdb`. These rows
+remain in the working database instead of being copied into the plan again.
+Without `--database`, inspection reports preview warnings for reused selections.
+The original Excel files are not needed for either preview.
 
-The workspace runs the SQLite engine as WebAssembly served from this site and
-keeps the whole database in the tab's memory, so it needs a current browser and
-enough memory for the file. Saving back to the original file in place needs the
-File System Access API, which Chromium browsers provide and Firefox and Safari
-do not; where it is missing, the workspace downloads a copy instead.
+Use `db inspect --limit <number>` to choose the preview page size. When more
+rows are available, pass the reported next preview cursor to `--cursor`, quoted
+for your shell. The cursor continues the saved preview without reading Excel.
+
+For an import whose routing is already explicit, `db import` combines
+preparation and application. Use a saved plan when a submission needs review or
+corrections.
+
+## Select worksheets, tables, and ranges
+
+The default selection uses visible worksheets with the first row as the header.
+Use `--hidden` to include hidden worksheets, or `--header-row` to change the
+default header row. A single workbook can instead select one region:
+
+```bash
+consultchimps db plan inventory.duckdb --input north=north.xlsx --sheet Inventory --header-row 3 -o north.ccplan
+consultchimps db plan inventory.duckdb --input north=north.xlsx --table InventoryTable -o table.ccplan
+consultchimps db plan inventory.duckdb --input north=north.xlsx --range "'Inventory'!B3:F200" -o range.ccplan
+```
+
+The streaming reader supports OOXML workbooks (`.xlsx` and `.xlsm`). Macros do
+not run. It reads formula caches, without calculating formulas. Missing caches
+and error cells need an explicit correction before they can become typed data.
+Styles needed to interpret Excel dates are read; workbook formatting and macros
+are not database content. Elapsed formats such as `[h]:mm` retain their numeric
+day fractions instead of becoming calendar dates. Missing declared style parts
+and invalid style references fail before those values can be interpreted.
+
+Each column in an explicit or named range needs a header. Worksheet selections
+use the span from the first populated header to the last, and reject blank
+headers inside that span. Name missing headers or choose a narrower range before
+retrying. Duplicate cell coordinates and ambiguous worksheet or Table names are
+rejected instead of selecting one value or region.
+
+## Route different submissions to tables
+
+A recipe is a versioned JSON document. Each route identifies an input alias, its
+selection key, a destination table, and source-to-target column mappings. The
+plan review exposes these keys and inferred columns. A worksheet selection key
+encodes both its name and header row, so changing a header row changes the
+capture definition.
+
+Map a destination column at most once within a route. Target names that differ
+only in letter case refer to the same column. Invalid table names, Record ID
+settings, and duplicate explicit destination mappings are rejected before
+workbook capture begins. Automatic mappings are checked against the captured
+headings before a plan can become ready.
+
+This synthetic recipe appends a selected worksheet to an existing table:
+
+```json
+{
+  "version": 1,
+  "routes": [
+    {
+      "source": "north",
+      "selection": "{\"sheet\":\"Inventory\",\"headerRow\":1}",
+      "destination": { "kind": "existing-table", "table": "datasets" },
+      "columns": [
+        { "source": "Dataset name", "target": "name", "type": "text" },
+        {
+          "source": "Attribute count",
+          "target": "attributes",
+          "type": "integer"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```bash
+consultchimps db plan inventory.duckdb --input north=north.xlsx --recipe recipe.json -o north.ccplan
+consultchimps db resolve inventory.duckdb --plan north.ccplan --recipe corrected-recipe.json
+consultchimps db apply inventory.duckdb --plan north.ccplan
+```
+
+Use `new-table` with an explicit schema to create a destination, or
+`new-table-infer` with a name and Record ID configuration to propose a schema.
+For an inferred table, explicit mappings also choose the proposed column names
+and types. These mappings are retained when you approve the schema. For example,
+map a source column named `record_id` to `vendor_id` to keep it separate from
+the database's generated Record ID. An existing table name is a decision to
+review, not permission to replace that table. Resolving a captured plan changes
+routing without reading Excel again. `db resolve --recipe` replaces the saved
+plan's table routes. A selection omitted from the replacement recipe is excluded
+from table loading. Its captured rows remain in the plan and become received
+evidence in the managed database and are linked to a delivery when one is
+recorded during apply.
+
+If another import changes the database after you prepare a plan, re-review its
+captured data against the current database before applying it:
+
+```bash
+consultchimps db resolve inventory.duckdb --plan north.ccplan
+consultchimps db inspect north.ccplan --json
+consultchimps db apply inventory.duckdb --plan north.ccplan
+```
+
+Changed submissions append source observations. Matching names, vendor IDs, or
+row hashes do not silently merge business records. Generated Record IDs identify
+stored observations independently of vendor identifiers; deciding that several
+observations represent one real dataset is a later reconciliation operation.
+
+## Define schemas first
+
+Save a schema as JSON, then create a database with `--schema schema.json` or use
+`db schema apply`. The dry run reports proposed additions without writing them.
+
+The browser lists the tables and columns proposed for creation before approval,
+including their types and constraints. Editing the schema document requires a
+new review.
+
+```json
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "datasets",
+      "recordId": { "prefix": "DS", "padding": 6 },
+      "columns": [
+        { "name": "name", "type": "text", "nullable": false },
+        { "name": "attributes", "type": "integer" }
+      ],
+      "foreignKeys": []
+    }
+  ]
+}
+```
+
+```bash
+consultchimps db schema apply inventory.duckdb --file schema.json --dry-run
+consultchimps db schema apply inventory.duckdb --file schema.json
+```
+
+Types are `text`, `integer`, `real`, `decimal`, `boolean`, `date`, and
+`timestamp`. A decimal column declares `precision` and `scale`. A foreign key
+names a local column and `referencesTable`; it refers to that table's generated
+`record_id`. Several columns can refer to different tables. This does not
+resolve vendor identifiers into those generated IDs automatically.
+
+Date-only source values infer a `date` column, including declared Excel dates
+with cached formula values. A column containing dates and timestamps infers
+`timestamp`; date-only entries become midnight values. An explicit timestamp at
+midnight remains a timestamp.
+
+## Keep duplicate content and delivery history separate
+
+The importer hashes source bytes. Previously captured content can be reused when
+the reader version and selected region agree, including when a file is renamed.
+This avoids extracting and inserting the same captured observations again. A
+changed file is a new source capture; it is not assumed to be a full snapshot or
+a list of changes.
+
+The browser distinguishes selected workbooks that share a filename. Their roles
+and revisions remain separate source details, while matching content can still
+reuse captured rows.
+
+Applied plans retain their reviewed column routes, decisions, and source
+bindings in the database. Removing the private plan file does not remove that
+applied audit history.
+
+In an external SQL tool, group observations by `_source_file_id` to compare
+submitted files. For a table named `attributes` with a boolean `is_cde` column:
+
+```sql
+SELECT _source_file_id,
+       COUNT(*) AS attribute_rows,
+       SUM(CASE WHEN is_cde THEN 1 ELSE 0 END) AS reported_cde_rows
+FROM attributes
+GROUP BY _source_file_id;
+```
+
+These are counts of submitted observations. They do not resolve duplicate
+business identities or choose an authoritative CDE classification.
+
+A delivery is a separate event referencing captures. The same content can belong
+to another delivery without duplicating its row values. Context records a label,
+dates, declared scope, and optional reported attributes:
+
+```json
+{
+  "label": "Inventory submission B",
+  "scope": { "kind": "partial", "description": "Selected business units" },
+  "attributes": { "reportedDatasetCount": 125 }
+}
+```
+
+```bash
+consultchimps db apply inventory.duckdb --plan review.ccplan --context delivery.json --request-id submission-b
+consultchimps db deliveries inventory.duckdb
+consultchimps db delivery record inventory.duckdb --capture CAPTURE_ID --context delivery.json --request-id submission-c
+```
+
+Use a stable, nonblank request ID when retrying the same action. An intentional
+new event needs a new request ID. Reported counts remain statements supplied
+with the delivery; they are not relabeled as counts calculated from imported
+rows. Scope can be `full`, `partial` with a description, `changes` with a
+baseline, or `unknown`. A partial submission does not remove observations absent
+from it.
+
+Delivery labels, partial descriptions, and change baselines must contain text.
+Reported numeric attributes must be finite. Invalid context is rejected before
+an import or delivery event changes the database.
+
+When you leave a completed event's request ID unchanged, the browser's **Record
+another delivery** action generates a fresh ID. An interrupted request keeps its
+saved ID for recovery. Replaying an existing ID reports that the event was
+already recorded.
+
+In the browser's delivery history, choose **Refresh** to load the first page and
+**Next deliveries** to view the next page. Each page contains up to 25 events.
+Refreshing returns to the first page; opening another database clears the
+previous database's history.
+
+## Export a copy or convert the format
+
+```bash
+consultchimps db export inventory.duckdb -o shared.duckdb
+consultchimps db export inventory.duckdb -o compatible.sqlite --dry-run
+consultchimps db export inventory.duckdb -o compatible.sqlite
+```
+
+An export dry run reports the conversion plan without writing the destination.
+It accepts an existing output path, including the source path, without
+`--force`. An actual export still validates collisions and refuses to overwrite
+its source.
+
+For WAL-mode SQLite sources, read-only inspection and dry runs can create `-wal`
+and `-shm` coordination files beside the source database. They do not change its
+tables.
+
+An export produces a separate file. A cross-format conversion reports storage
+representation changes and refuses objects without a supported mapping. Keep the
+working source and verify the output in the receiving application. SQLite stores
+exact decimals as text, while DuckDB uses its decimal type; this changes how raw
+SQL should interpret those columns.
+
+Schema creation supports acyclic relationships to generated Record IDs. Changing
+an existing relationship, Record ID configuration, column type, or nullability
+requires a separate migration and is reported as a conflict here. External
+schema changes invalidate saved schema plans.
+
+`db inspect` can describe table columns in an ordinary SQLite or DuckDB file
+without adding ConsultChimps metadata or reading its rows. Managed imports,
+delivery history, and conversion require a database created by ConsultChimps.
+This phase does not adopt an arbitrary application's database for managed
+writes.
+
+## Browser storage and exported files
+
+The browser workspace uses persistent origin-private storage (OPFS). Opening an
+OS file creates a browser working copy. Subsequent imports and schema changes
+modify that working copy. They do not synchronize back to the selected file.
+Export a new file when another application needs the current database.
+
+Browser storage belongs to the site's origin and browser profile. Clearing site
+data removes it, and private browsing or storage quotas can prevent persistence.
+Keep exported files as backups. The interface checks capabilities and reports
+unsupported storage instead of falling back to loading the whole database into
+memory.
+
+A browser download keeps a temporary export in OPFS while the browser consumes
+the file. Its name carries a 24-hour expiry. The workspace checks for expired
+export files when it starts and once an hour, and removes only files in its
+private export namespace. A Web Lock protects an export while another tab is
+writing or downloading it. When Web Locks are unavailable, cleanup leaves the
+file in place instead of risking an active download. These temporary files need
+browser storage in addition to the working database until cleanup completes.
+
+Saved import reviews use the same browser storage. If a tab closes or an apply
+is cancelled, reopen the working database and resume the saved review. A
+cancelled apply rolls back its transaction, so retrying the plan does not keep a
+partly written batch.
+
+The browser saves an import request before applying it. If the database commits
+but the worker response is lost, reopen the database and choose **Finish
+recovery**. The workspace replays the same request ID and returns its saved
+receipt instead of adding the rows or delivery again.
+
+The CLI works directly with the named database file. Use one writer at a time,
+close a database in other applications before modifying it, and retain the
+source files or private plans until an import is verified. When replacing an
+exported file with `--force`, keep other applications from writing that
+destination until export finishes. Use a new filename if exclusive access is
+uncertain.
+
+The Node library refuses replacement with `DB_NATIVE_FILE_BUSY` while a database
+or plan remains open through the same runtime, including a filesystem alias.
+Close those handles first. Other processes must also release the destination
+before replacement.
+
+## Planning a large import
+
+Allow space for the captured review plan, the working database, transaction
+files, and temporary engine storage. The database retains captured source
+evidence alongside typed destination rows, so its size can exceed the compressed
+Excel inputs substantially. Recording another delivery of an existing capture
+reuses that evidence.
+
+The native pipeline has been measured with a generated one-million-row workbook.
+That run took about 13 seconds to capture, 2 seconds to review captured values,
+and 13 seconds to apply to DuckDB. Its initial database occupied about 112 MB.
+Sampled process memory during apply reached about 799 MB in a process warmed by
+the smaller benchmark. These measurements depend on row width, strings,
+constraints, storage, and concurrent work. They do not establish a browser
+capacity limit.
+
+Start with a representative workbook, review its inferred types and row counts,
+then increase the batch size. Use the CLI when browser storage or memory
+prevents an import. Excel formula cells supply saved results; ConsultChimps does
+not recalculate formulas during capture.

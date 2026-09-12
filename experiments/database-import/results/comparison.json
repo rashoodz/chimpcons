@@ -1,0 +1,768 @@
+[
+  {
+    "label": "version",
+    "milliseconds": 3,
+    "rows": [
+      {
+        "version": "v1.5.5"
+      }
+    ]
+  },
+  {
+    "label": "native-load",
+    "milliseconds": 2340,
+    "rows": [
+      {
+        "Count": "7000000"
+      }
+    ]
+  },
+  {
+    "label": "datasets",
+    "milliseconds": 2,
+    "rows": [
+      {
+        "Count": "100000"
+      }
+    ]
+  },
+  {
+    "label": "checkpoint",
+    "milliseconds": 6,
+    "rows": []
+  },
+  {
+    "label": "sqlite-extension",
+    "milliseconds": 28,
+    "rows": []
+  },
+  {
+    "label": "sqlite-attach",
+    "milliseconds": 0,
+    "rows": []
+  },
+  {
+    "label": "sqlite-export",
+    "milliseconds": 2933,
+    "rows": [
+      {
+        "Count": "100000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-types",
+    "milliseconds": 1,
+    "rows": [
+      {
+        "column_name": "row_id",
+        "column_type": "BIGINT",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      },
+      {
+        "column_name": "source_file_id",
+        "column_type": "BIGINT",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      },
+      {
+        "column_name": "dataset_id",
+        "column_type": "BIGINT",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      },
+      {
+        "column_name": "attribute_name",
+        "column_type": "VARCHAR",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      },
+      {
+        "column_name": "is_cde",
+        "column_type": "BIGINT",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      },
+      {
+        "column_name": "amount",
+        "column_type": "VARCHAR",
+        "null": "YES",
+        "key": null,
+        "default": null,
+        "extra": null
+      }
+    ]
+  },
+  {
+    "label": "native-join-1",
+    "milliseconds": 6,
+    "rows": [
+      {
+        "domain_id": 0,
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": 1,
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": 2,
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": 3,
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": 4,
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": 5,
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": 6,
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": 7,
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": 8,
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": 9,
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": 10,
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": 11,
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": 12,
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": 13,
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": 14,
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": 15,
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": 16,
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": 17,
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": 18,
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": 19,
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "native-join-2",
+    "milliseconds": 3,
+    "rows": [
+      {
+        "domain_id": 0,
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": 1,
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": 2,
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": 3,
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": 4,
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": 5,
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": 6,
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": 7,
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": 8,
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": 9,
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": 10,
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": 11,
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": 12,
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": 13,
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": 14,
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": 15,
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": 16,
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": 17,
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": 18,
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": 19,
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-join-1",
+    "milliseconds": 153,
+    "rows": [
+      {
+        "domain_id": "0",
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": "1",
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": "2",
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": "3",
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": "4",
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": "5",
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": "6",
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": "7",
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": "8",
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": "9",
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": "10",
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": "11",
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": "12",
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": "13",
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": "14",
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": "15",
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": "16",
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": "17",
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": "18",
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": "19",
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-join-2",
+    "milliseconds": 152,
+    "rows": [
+      {
+        "domain_id": "0",
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": "1",
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": "2",
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": "3",
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": "4",
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": "5",
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": "6",
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": "7",
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": "8",
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": "9",
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": "10",
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": "11",
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": "12",
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": "13",
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": "14",
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": "15",
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": "16",
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": "17",
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": "18",
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": "19",
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-detach",
+    "milliseconds": 0,
+    "rows": []
+  },
+  {
+    "label": "sqlite-indexes",
+    "milliseconds": 886
+  },
+  {
+    "label": "sqlite-reattach",
+    "milliseconds": 0,
+    "rows": []
+  },
+  {
+    "label": "sqlite-indexed-join-1",
+    "milliseconds": 153,
+    "rows": [
+      {
+        "domain_id": "0",
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": "1",
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": "2",
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": "3",
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": "4",
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": "5",
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": "6",
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": "7",
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": "8",
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": "9",
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": "10",
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": "11",
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": "12",
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": "13",
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": "14",
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": "15",
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": "16",
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": "17",
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": "18",
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": "19",
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-indexed-join-2",
+    "milliseconds": 156,
+    "rows": [
+      {
+        "domain_id": "0",
+        "n": "35000",
+        "calculated": "18371325.0000"
+      },
+      {
+        "domain_id": "1",
+        "n": "35000",
+        "calculated": "18371692.5000"
+      },
+      {
+        "domain_id": "2",
+        "n": "35000",
+        "calculated": "18372060.0000"
+      },
+      {
+        "domain_id": "3",
+        "n": "35000",
+        "calculated": "18372427.5000"
+      },
+      {
+        "domain_id": "4",
+        "n": "35000",
+        "calculated": "18372795.0000"
+      },
+      {
+        "domain_id": "5",
+        "n": "35000",
+        "calculated": "18373162.5000"
+      },
+      {
+        "domain_id": "6",
+        "n": "35000",
+        "calculated": "18373530.0000"
+      },
+      {
+        "domain_id": "7",
+        "n": "35000",
+        "calculated": "18373897.5000"
+      },
+      {
+        "domain_id": "8",
+        "n": "35000",
+        "calculated": "18374265.0000"
+      },
+      {
+        "domain_id": "9",
+        "n": "35000",
+        "calculated": "18374632.5000"
+      },
+      {
+        "domain_id": "10",
+        "n": "35000",
+        "calculated": "18375000.0000"
+      },
+      {
+        "domain_id": "11",
+        "n": "35000",
+        "calculated": "18375367.5000"
+      },
+      {
+        "domain_id": "12",
+        "n": "35000",
+        "calculated": "18375735.0000"
+      },
+      {
+        "domain_id": "13",
+        "n": "35000",
+        "calculated": "18376102.5000"
+      },
+      {
+        "domain_id": "14",
+        "n": "35000",
+        "calculated": "18376470.0000"
+      },
+      {
+        "domain_id": "15",
+        "n": "35000",
+        "calculated": "18376837.5000"
+      },
+      {
+        "domain_id": "16",
+        "n": "35000",
+        "calculated": "18377205.0000"
+      },
+      {
+        "domain_id": "17",
+        "n": "35000",
+        "calculated": "18377572.5000"
+      },
+      {
+        "domain_id": "18",
+        "n": "35000",
+        "calculated": "18377940.0000"
+      },
+      {
+        "domain_id": "19",
+        "n": "35000",
+        "calculated": "18378307.5000"
+      }
+    ]
+  },
+  {
+    "label": "sqlite-final-detach",
+    "milliseconds": 0,
+    "rows": []
+  },
+  {
+    "sizes": {
+      "duckdb": 39858176,
+      "sqlite": 367173632
+    }
+  }
+]

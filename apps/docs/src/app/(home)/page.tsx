@@ -41,8 +41,9 @@ export default function HomePage() {
             More <em>useful</em> work
           </h1>
           <p className="manual-intro mt-8 max-w-2xl text-lg leading-8 text-fd-muted-foreground md:text-xl">
-            Durable spreadsheet, PowerPoint, and PDF tools for consultants who
-            need repeatable results, visible provenance, and no mystery uploads
+            Local spreadsheet, database, PowerPoint, and PDF tools for
+            consultants who need repeatable results, visible provenance, and no
+            mystery uploads
           </p>
           <div className="manual-actions mt-9 flex flex-wrap gap-3">
             <Link

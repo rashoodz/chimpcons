@@ -17,20 +17,24 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
-    "bundle": "tsup --config tsup.bundle.config.ts",
+    "bundle": "tsup --config tsup.bundle.config.ts && node scripts/bundle.ts",
     "prepack": "pnpm build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@consultchimps/core": "workspace:*",
+    "@consultchimps/db": "workspace:*",
     "@consultchimps/files": "workspace:*",
     "@consultchimps/messages": "workspace:*",
     "@consultchimps/pdf": "workspace:*",
     "@consultchimps/pptx": "workspace:*",
     "@consultchimps/xlsx": "workspace:*",
+    "@duckdb/node-api": "1.5.5-r.4",
+    "better-sqlite3": "13.0.3",
     "commander": "14.0.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
     "jszip": "3.10.1",
     "pdf-lib": "1.17.1",
     "typescript": "7.0.2",

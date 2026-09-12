@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node ../../scripts/copy-sql-wasm.ts && next build",
-    "dev": "node ../../scripts/copy-sql-wasm.ts && next dev",
+    "build": "node ../../scripts/copy-database-browser-assets.ts && next build --webpack",
+    "dev": "node ../../scripts/copy-database-browser-assets.ts && next dev --webpack",
     "e2e": "playwright test",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "postinstall": "fumadocs-mdx",
@@ -28,7 +28,8 @@
     "next": "16.3.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tabulator-tables": "6.5.2"
+    "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
+    "@sqlite.org/sqlite-wasm": "3.53.4-build1"
   },
   "devDependencies": {
     "@consultchimps/theme": "workspace:*",
@@ -38,7 +39,6 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "@types/tabulator-tables": "6.3.6",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.3.1",
     "pdf-lib": "1.17.1",

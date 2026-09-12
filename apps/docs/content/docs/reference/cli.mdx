@@ -325,6 +325,96 @@ Options:
   -f, --force               replace an existing output file
 ```
 
+## Database operations
+
+`consultchimps db` manages persistent local SQLite and DuckDB files. See the
+[data workspace guide](/docs/tools/data-workspace) for schema, recipe, and
+delivery-context JSON examples.
+
+| Command                                                                                                                    | Purpose                                     |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `consultchimps db create -o inventory.duckdb`                                                                              | Create a working database                   |
+| `consultchimps db inspect inventory.duckdb`                                                                                | Inspect tables and history counts           |
+| `consultchimps db schema apply inventory.duckdb --file schema.json`                                                        | Apply additive table and column definitions |
+| `consultchimps db plan inventory.duckdb --input north=north.xlsx -o review.ccplan`                                         | Capture source values into private staging  |
+| `consultchimps db inspect review.ccplan`                                                                                   | Review the saved plan without Excel         |
+| `consultchimps db resolve inventory.duckdb --plan review.ccplan --recipe recipe.json`                                      | Correct routing and column mappings         |
+| `consultchimps db apply inventory.duckdb --plan review.ccplan`                                                             | Approve and commit captured rows            |
+| `consultchimps db import inventory.duckdb --input north=north.xlsx --recipe recipe.json`                                   | Prepare and apply a resolved import         |
+| `consultchimps db deliveries inventory.duckdb`                                                                             | Read delivery history                       |
+| `consultchimps db delivery record inventory.duckdb --capture CAPTURE_ID --context delivery.json --request-id submission-b` | Record another event using existing content |
+
+### Database creation and inspection options
+
+- `-o, --output <file>` names the output. Creation refuses an existing file by
+  default; `-f, --force` permits replacement after input and destination checks.
+- `--format <format>` chooses `sqlite` or `duckdb`. Recognized extensions supply
+  this default; a conflicting extension is refused.
+- `--schema <file>` applies a versioned schema during creation.
+- `db inspect --limit <number>` limits the saved plan's row preview to 20 by
+  default, with a maximum of 100. Add `--database <file>` to preview rows reused
+  from that working database. Without it, the plan reports
+  `DB_PREVIEW_DATABASE_REQUIRED` preview warnings for reused selections. Use
+  `--cursor <cursor>` with the reported next preview cursor to continue; quote
+  the cursor for your shell so it remains one argument. Database inspection
+  reports table and capture summaries.
+- `db schema apply --file <schema>` loads a versioned schema. `--dry-run`
+  reports additions and conflicts without applying them.
+
+### Import options
+
+Both `db plan` and `db import` accept:
+
+- `--input <source>`: repeat for several workbooks. Use `alias=path` to keep
+  recipe references independent of filenames. If the whole argument names an
+  existing path, the command treats it as a path, including when the filename
+  contains `=`. A plain path uses its filename stem.
+- `--recipe <file>`: versioned routes and column mappings. A recipe can select
+  different worksheets, tables, or ranges in each source.
+- `--sheet <name>`, `--table <name>`, or `--range <reference>`: one selected
+  region from one input. Choose one of these flags, or use recipe selections.
+- `--header-row <number>`: worksheet header row, starting at 1. The default
+  is 1.
+- `--hidden`: include hidden worksheets in the default selection.
+- `--into <table>`: proposed destination name when importing one region.
+
+`db plan` requires `-o, --output <file>` for its private `.ccplan` artifact and
+accepts `-f, --force`. This plan stores captured values and can be reviewed and
+applied after removing the Excel inputs. Source documents are not modified.
+
+`db apply` requires `--plan <file>`. Both `db apply` and `db import` accept
+`--context <file>` for a delivery event and `--request-id <id>` for a retry key.
+Without an explicit key, the prepared plan's ID identifies the application.
+Unresolved conflicts prevent application. `db resolve` requires `--plan` and
+accepts `--recipe` to replace the saved routes and mappings. Omitted selections
+stop loading into destination tables; their captured evidence remains available.
+Omit the recipe to re-review captured data against the current database without
+rereading Excel.
+
+### Database export options
+
+```bash
+consultchimps db export inventory.sqlite -o inventory.duckdb --dry-run
+consultchimps db export inventory.sqlite -o inventory.duckdb
+```
+
+`consultchimps db export` requires `-o, --output <file>`, accepts
+`--format <format>`, and refuses existing outputs unless `-f, --force` is given.
+It refuses to overwrite the working source database. `--dry-run` reports storage
+changes and unsupported objects without writing an output. A same-format export
+makes an independent file; a cross-format export converts managed tables and
+history. Unsupported objects block conversion instead of being silently omitted.
+
+### Delivery options
+
+`db deliveries` accepts `--limit <number>` (default 50) and `--cursor <cursor>`
+from a prior response. `db delivery record` requires one or more
+`--capture <id>` options, a `--context <file>`, and a `--request-id <id>`. Reuse
+a key for a retry; use another key for an intentional new delivery.
+
+Database counts represented by `bigint` in library results are decimal strings
+in `--json` output. Progress and errors stay out of JSON stdout.
+
 ## Exit behavior
 
 Successful commands exit with status `0`. Invalid input, discovery failures,

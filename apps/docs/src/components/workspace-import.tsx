@@ -1,548 +1,1122 @@
 "use client";
 
-/**
- * Bringing a spreadsheet into an open workspace.
- *
- * The flow is two steps on purpose. Choosing a file only asks the worker what
- * the file holds, so nothing is written while the visitor is still deciding;
- * the answer becomes a small form, one row per worksheet, carrying a suggested
- * table name and Record ID prefix that are visible and editable before
- * anything is created. Import then sends the file back with the names that were
- * settled on, and `@consultchimps/db` creates every chosen table in one unit.
- *
- * The component owns the whole interaction and reports only the new workspace
- * summary upward, which keeps the page's mount point to a single line and the
- * two files independent of each other.
- */
-
 import {
-  describeFailure,
   inputClass,
   primaryButtonClass,
-  readUploads,
   secondaryButtonClass,
   sectionClass,
 } from "@/components/tool-kit";
-import {
-  WORKSPACE_IMPORT_FILES,
-  workspaceImportKind,
-  type WorkspaceImportKind,
-} from "@/lib/accepted-files";
-import {
-  cellCountText,
-  importBlockers,
-  isImportable,
-  type ImportBlocker,
-} from "@/lib/workspace-import-blockers";
+import { WORKBOOK_FILES } from "@/lib/accepted-files";
 import type {
-  ImportSourceDescription,
-  ImportTableChoice,
+  WorkspaceDeliveryContext,
+  WorkspaceImportFile,
+  WorkspacePreparedImport,
+  WorkspacePreviewPage,
+  WorkspaceProgress,
+  WorkspaceRouteDecision,
   WorkspaceSummary,
 } from "@/lib/workspace-protocol";
-import type { WorkspaceBusy } from "@/lib/workspace-state";
 import type { WorkspaceClient } from "@/lib/workspace-worker";
-import { identifierKey, MAX_RECORD_ID_PADDING } from "@consultchimps/db/schema";
-import { FileUp, LoaderCircle, Upload, X } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { isConsultChimpsError } from "@consultchimps/core";
+import {
+  FileSpreadsheet,
+  LoaderCircle,
+  PackageCheck,
+  Truck,
+} from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useEffect } from "react";
 
-/** The default zero-padding a new table numbers its records with. */
-const DEFAULT_PADDING = "4";
-
-/** The file the visitor chose, held so import can send the same bytes back. */
-interface ChosenFile {
-  readonly name: string;
-  /**
-   * Which family it belongs to, settled here where the browser's media type is
-   * still available, and carried from here on. Nothing downstream sees the
-   * `File`, so nothing downstream can decide this again.
-   */
-  readonly kind: WorkspaceImportKind;
-  readonly bytes: Uint8Array;
-  readonly sources: readonly ImportSourceDescription[];
+interface ImportSourceState {
+  readonly id: string;
+  readonly file: File;
+  readonly role: string;
+  readonly revision: string;
 }
 
-/** One row of the form: a source, and what the visitor wants to call it. */
-interface SourceChoice {
-  selected: boolean;
-  tableName: string;
-  recordIdPrefix: string;
-  /** Held as text so the field can be emptied while it is being retyped. */
-  recordIdPadding: string;
-}
-
-/**
- * What to say about a condition that stops this source being imported.
- *
- * The wording is the page's own - the visitor is looking at the row already, so
- * nothing here repeats the file or worksheet name - while which conditions
- * exist, and in which order, comes from the rule the worker refuses by. The
- * form therefore never offers a tick the import will not honour.
- *
- * `describeImportSources` lists a source only when it has a table or has one of
- * these conditions, and the worker refuses a source with no table regardless,
- * so a change to that listing shows up as a refusal rather than as a table of
- * values nobody entered.
- */
-function blockerText(blocker: ImportBlocker): string {
-  const held = cellCountText(blocker.cells);
-  const hold = blocker.cells === 1 ? "holds" : "hold";
-  return blocker.kind === "uncalculated-formulas"
-    ? `${held} ${hold} a formula this workbook carries no calculated value for, so importing would leave those values empty. Open the workbook in Excel, let it calculate, save it, and choose the file again`
-    : `${held} ${hold} an error value, which this workbook stores as a number, so importing would put numbers nobody entered in those cells. Fix or clear the errors in Excel, save the workbook, and choose the file again`;
-}
-
-function initialChoices(
-  sources: readonly ImportSourceDescription[],
-): SourceChoice[] {
-  return sources.map((source) => ({
-    // A source with no rows can still be worth creating as an empty table, so
-    // it is offered; everything that carries data and can be imported is ticked
-    // to begin with.
-    selected: isImportable(source) && source.rowCount > 0,
-    tableName: source.suggestedTableName,
-    recordIdPrefix: source.suggestedRecordIdPrefix,
-    recordIdPadding: DEFAULT_PADDING,
-  }));
-}
-
-/**
- * What is wrong with the form, as one message, or null when it is ready. Table
- * names are compared with the database package's own identifier fold, so the
- * page refuses exactly the names the workspace would refuse rather than a
- * near-enough approximation of them.
- */
-function formProblem(
-  choices: readonly SourceChoice[],
-  existingTableNames: readonly string[],
-): string | null {
-  const chosen = choices.filter((choice) => choice.selected);
-  if (chosen.length === 0) {
-    return "Choose at least one table to import";
-  }
-  const taken = new Map(
-    existingTableNames.map((name) => [identifierKey(name), name]),
-  );
-  for (const choice of chosen) {
-    const name = choice.tableName.trim();
-    if (name === "") {
-      return "Give every table you are importing a name";
-    }
-    if (choice.recordIdPrefix.trim() === "") {
-      return `Give "${name}" a Record ID prefix`;
-    }
-    // The text is judged, not just the number it parses to: "1e3" is a whole
-    // number to `Number` and a refusal to `assertRecordIdConfig`, and a page
-    // that enables Import on a value the library will reject has checked the
-    // wrong thing.
-    const padding = Number(choice.recordIdPadding);
-    if (
-      !/^\d+$/u.test(choice.recordIdPadding.trim()) ||
-      padding > MAX_RECORD_ID_PADDING
-    ) {
-      return `The padding for "${name}" must be a whole number from 0 to ${MAX_RECORD_ID_PADDING}`;
-    }
-    const key = identifierKey(name);
-    const clash = taken.get(key);
-    if (clash !== undefined) {
-      return clash === name
-        ? `A table called "${name}" would be created twice, so give one of them another name`
-        : `"${name}" cannot be used, because the workspace already reads "${clash}" as the same name`;
-    }
-    taken.set(key, name);
-  }
-  return null;
-}
-
-export interface WorkspaceImportProps {
-  /**
-   * The page's one busy state, read rather than kept here. Reading a file and
-   * running an import are page-wide commands like a save, so they belong in the
-   * shell's busy state: while either runs, New, Open, and Save are held back
-   * with the rest of the page, and a click on New cannot queue itself behind an
-   * import and discard what the import created.
-   */
-  readonly busy: WorkspaceBusy;
-  /** The worker client, created lazily by the page that owns it. */
+interface WorkspaceImportProps {
+  readonly busy: boolean;
   readonly client: () => WorkspaceClient;
-  /** The tables the workspace already holds, so a clash is caught early. */
-  readonly existingTableNames: readonly string[];
-  /**
-   * A file was chosen and is being read so its sources can be described.
-   *
-   * This and the four below report what this section did, as it happens, rather
-   * than setting a busy value from here. The page's state model decides what
-   * each of them means; this section only says which happened, so one place
-   * knows what the page is doing.
-   */
-  readonly onReading: () => void;
-  /** That read ended, whether it described the file or refused it. */
-  readonly onReadFinished: () => void;
-  /** The import itself has been sent to the worker. */
-  readonly onRunning: () => void;
-  /** It landed: the workspace as it stands now, and what to say about it. */
-  readonly onImported: (summary: WorkspaceSummary, notice: string) => void;
-  /**
-   * It did not. The explanation stays here, against the form it belongs to, so
-   * the page says nothing about a failure whose context is on this section.
-   */
-  readonly onFailed: () => void;
+  readonly summary: WorkspaceSummary;
+  readonly onSummary: (summary: WorkspaceSummary) => void;
+  readonly reportError: (error: unknown) => void;
+  readonly onReviewState: (active: boolean) => void;
+  readonly runLong: <T>(
+    label: string,
+    run: (options: {
+      readonly signal: AbortSignal;
+      readonly onProgress: (progress: WorkspaceProgress) => void;
+    }) => Promise<T>,
+  ) => Promise<T | null>;
+}
+
+const COLUMN_TYPES = [
+  "text",
+  "integer",
+  "real",
+  "decimal",
+  "boolean",
+  "date",
+  "timestamp",
+] as const;
+
+const PENDING_IMPORTS_KEY = "consultchimps.workspace.pending-imports.v1";
+
+interface PendingImportRequest {
+  readonly databaseId: string;
+  readonly planId: string;
+  readonly delivery: WorkspaceDeliveryContext;
+  readonly operation?: "apply" | "delivery" | undefined;
+}
+
+function isPendingImportRequest(value: unknown): value is PendingImportRequest {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const request = value as Record<string, unknown>;
+  const delivery = request["delivery"];
+  if (
+    typeof delivery !== "object" ||
+    delivery === null ||
+    Array.isArray(delivery)
+  ) {
+    return false;
+  }
+  const context = delivery as Record<string, unknown>;
+  return (
+    typeof request["databaseId"] === "string" &&
+    typeof request["planId"] === "string" &&
+    (request["operation"] === undefined ||
+      request["operation"] === "apply" ||
+      request["operation"] === "delivery") &&
+    typeof context["requestId"] === "string" &&
+    typeof context["vendor"] === "string" &&
+    typeof context["entity"] === "string" &&
+    typeof context["phase"] === "string" &&
+    (context["coverage"] === "full" ||
+      context["coverage"] === "partial" ||
+      context["coverage"] === "unknown") &&
+    (context["effectiveDate"] === null ||
+      typeof context["effectiveDate"] === "string") &&
+    (context["receivedDate"] === null ||
+      typeof context["receivedDate"] === "string") &&
+    typeof context["note"] === "string"
+  );
+}
+
+function readPendingImports(): readonly PendingImportRequest[] {
+  try {
+    const parsed: unknown = JSON.parse(
+      window.localStorage.getItem(PENDING_IMPORTS_KEY) ?? "[]",
+    );
+    return Array.isArray(parsed) ? parsed.filter(isPendingImportRequest) : [];
+  } catch {
+    return [];
+  }
+}
+
+function pendingImport(
+  databaseId: string,
+  planId: string,
+): PendingImportRequest | null {
+  return (
+    readPendingImports().find(
+      (request) =>
+        request.databaseId === databaseId && request.planId === planId,
+    ) ?? null
+  );
+}
+
+function writePendingImport(request: PendingImportRequest): void {
+  const next = [
+    request,
+    ...readPendingImports().filter(
+      (candidate) =>
+        candidate.databaseId !== request.databaseId ||
+        candidate.planId !== request.planId,
+    ),
+  ];
+  window.localStorage.setItem(PENDING_IMPORTS_KEY, JSON.stringify(next));
+}
+
+function clearPendingImport(databaseId: string, planId: string): void {
+  const next = readPendingImports().filter(
+    (request) => request.databaseId !== databaseId || request.planId !== planId,
+  );
+  window.localStorage.setItem(PENDING_IMPORTS_KEY, JSON.stringify(next));
+}
+
+async function executePendingImport<T>(
+  request: PendingImportRequest,
+  execute: () => Promise<T>,
+): Promise<T> {
+  writePendingImport(request);
+  try {
+    return await execute();
+  } catch (error) {
+    if (
+      isConsultChimpsError(error) &&
+      [
+        "DB_REQUEST_ID_CONFLICT",
+        "DB_INVALID_DELIVERY_CONTEXT",
+        "DB_DELIVERY_REQUEST_ID_REQUIRED",
+        "DB_IMPORT_REQUEST_ID_REQUIRED",
+      ].includes(error.code)
+    ) {
+      clearPendingImport(request.databaseId, request.planId);
+    }
+    throw error;
+  }
+}
+
+function emptyDelivery(): WorkspaceDeliveryContext {
+  return {
+    requestId: "",
+    vendor: "",
+    entity: "",
+    phase: "",
+    coverage: "unknown",
+    effectiveDate: null,
+    receivedDate: null,
+    note: "",
+  };
+}
+
+function decisionsFor(plan: WorkspacePreparedImport): WorkspaceRouteDecision[] {
+  return plan.regions.map((region) => {
+    const route =
+      region.route.kind === "unresolved"
+        ? { kind: "create" as const, table: region.route.suggestedTable }
+        : region.route;
+    return {
+      regionId: region.id,
+      route,
+      columns: region.columns.map((column) => ({
+        source: column.source,
+        destination: column.destination,
+        type: column.destinationType ?? column.inferredType,
+      })),
+    };
+  });
+}
+
+function sameDecisions(
+  left: readonly WorkspaceRouteDecision[],
+  right: readonly WorkspaceRouteDecision[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((decision, index) => {
+      const other = right[index];
+      return (
+        other !== undefined &&
+        decision.regionId === other.regionId &&
+        decision.route.kind === other.route.kind &&
+        decision.route.table === other.route.table &&
+        decision.columns.length === other.columns.length &&
+        decision.columns.every((column, columnIndex) => {
+          const otherColumn = other.columns[columnIndex];
+          return (
+            otherColumn !== undefined &&
+            column.source === otherColumn.source &&
+            column.destination === otherColumn.destination &&
+            column.type === otherColumn.type
+          );
+        })
+      );
+    })
+  );
+}
+
+function fileKey(file: File, index: number): string {
+  return `${file.name}:${String(file.size)}:${String(file.lastModified)}:${String(index)}`;
 }
 
 export function WorkspaceImport({
   busy,
   client,
-  existingTableNames,
-  onFailed,
-  onImported,
-  onReadFinished,
-  onReading,
-  onRunning,
+  summary,
+  onSummary,
+  reportError,
+  onReviewState,
+  runLong,
 }: WorkspaceImportProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [file, setFile] = useState<ChosenFile | null>(null);
-  const [choices, setChoices] = useState<SourceChoice[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const decisionGenerationRef = useRef(0);
+  const lastCompletedRequest = useRef<{
+    readonly planId: string;
+    readonly requestId: string;
+  } | null>(null);
+  const [sources, setSources] = useState<readonly ImportSourceState[]>([]);
+  const [plan, setPlan] = useState<WorkspacePreparedImport | null>(null);
+  const [savedPlans, setSavedPlans] = useState<
+    readonly WorkspacePreparedImport[]
+  >([]);
+  const [ignoredPlanCount, setIgnoredPlanCount] = useState(0);
+  const [decisions, setDecisions] = useState<readonly WorkspaceRouteDecision[]>(
+    [],
+  );
+  const [approvedDecisions, setApprovedDecisions] = useState<
+    readonly WorkspaceRouteDecision[] | null
+  >(null);
+  const [resolving, setResolving] = useState(false);
+  const [preview, setPreview] = useState<WorkspacePreviewPage | null>(null);
+  const [delivery, setDelivery] =
+    useState<WorkspaceDeliveryContext>(emptyDelivery);
+  const [result, setResult] = useState<string | null>(null);
 
-  const reset = useCallback(() => {
-    setFile(null);
-    setChoices([]);
-    setError(null);
-  }, []);
+  useEffect(() => {
+    onReviewState(plan !== null && result === null);
+    return () => onReviewState(false);
+  }, [onReviewState, plan, result]);
 
-  const onFiles = useCallback(
-    (files: readonly File[]) => {
-      void (async () => {
-        onReading();
-        setError(null);
-        try {
-          // The kind and the acceptance are one question, asked once. Picking
-          // the file by its kind is what makes them the same question.
-          let chosen: { file: File; kind: WorkspaceImportKind } | undefined;
-          for (const candidate of files) {
-            const kind = workspaceImportKind(candidate);
-            if (kind !== undefined) {
-              chosen = { file: candidate, kind };
-              break;
-            }
-          }
-          if (chosen === undefined) {
-            throw new Error(
-              `That file is not ${WORKSPACE_IMPORT_FILES.description}, so nothing was read`,
-            );
-          }
-          const [first] = await readUploads([chosen.file], () => true);
-          if (first === undefined) {
-            throw new Error(
-              `That file is not ${WORKSPACE_IMPORT_FILES.description}, so nothing was read`,
-            );
-          }
-          const sources = await client().describeImport(
-            first.name,
-            chosen.kind,
-            first.bytes,
-          );
-          setFile({
-            name: first.name,
-            kind: chosen.kind,
-            bytes: first.bytes,
-            sources,
-          });
-          setChoices(initialChoices(sources));
-        } catch (caught) {
-          setFile(null);
-          setChoices([]);
-          setError(describeFailure(caught));
-        } finally {
-          onReadFinished();
-        }
-      })();
-    },
-    [client, onReadFinished, onReading],
+  useEffect(() => {
+    let active = true;
+    void client()
+      .listImports()
+      .then((listing) => {
+        if (!active) return;
+        setSavedPlans(
+          listing.plans.filter(
+            (saved) =>
+              saved.application === "pending" ||
+              pendingImport(summary.databaseId, saved.id) !== null,
+          ),
+        );
+        setIgnoredPlanCount(listing.ignoredPlanCount);
+      })
+      .catch((error: unknown) => {
+        if (active) reportError(error);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, reportError, summary.databaseId, summary.workingCopyName]);
+
+  const existingTables = useMemo(
+    () => summary.tables.map((table) => table.name),
+    [summary.tables],
   );
 
-  const update = useCallback((index: number, change: Partial<SourceChoice>) => {
-    setChoices((previous) =>
-      previous.map((choice, position) =>
-        position === index ? { ...choice, ...change } : choice,
+  const chooseFiles = useCallback(
+    (files: FileList | null) => {
+      if (files === null || resolving) return;
+      const accepted = Array.from(files).filter(WORKBOOK_FILES.accepts);
+      setSources(
+        accepted.map((file, index) => ({
+          id: fileKey(file, index),
+          file,
+          role: "",
+          revision: "",
+        })),
+      );
+      decisionGenerationRef.current += 1;
+      setPlan(null);
+      setApprovedDecisions(null);
+      setPreview(null);
+      setResult(null);
+      setDelivery({
+        ...emptyDelivery(),
+        requestId: `delivery-${globalThis.crypto.randomUUID()}`,
+      });
+    },
+    [resolving],
+  );
+
+  const updateSource = useCallback(
+    (id: string, field: "revision" | "role", value: string) => {
+      setSources((current) =>
+        current.map((source) =>
+          source.id === id ? { ...source, [field]: value } : source,
+        ),
+      );
+    },
+    [],
+  );
+
+  const prepare = useCallback(async () => {
+    if (resolving) return;
+    const selected: WorkspaceImportFile[] = sources.map((source) => ({
+      id: source.id,
+      file: source.file,
+      role: source.role,
+      revision: source.revision,
+    }));
+    const prepared = await runLong("Preparing import", (options) =>
+      client().prepareImport(selected, options),
+    );
+    if (prepared === null) return;
+    setPlan(prepared);
+    setSavedPlans((current) => [
+      prepared,
+      ...current.filter((candidate) => candidate.id !== prepared.id),
+    ]);
+    const preparedDecisions = decisionsFor(prepared);
+    decisionGenerationRef.current += 1;
+    setDecisions(preparedDecisions);
+    setApprovedDecisions(prepared.state === "ready" ? preparedDecisions : null);
+    setPreview(null);
+    setResult(null);
+  }, [client, resolving, runLong, sources]);
+
+  const updateRoute = useCallback(
+    (regionId: string, kind: "append" | "create", table: string) => {
+      setDecisions((current) =>
+        current.map((decision) =>
+          decision.regionId === regionId
+            ? { ...decision, route: { kind, table } }
+            : decision,
+        ),
+      );
+      decisionGenerationRef.current += 1;
+    },
+    [],
+  );
+
+  const updateColumn = useCallback(
+    (
+      regionId: string,
+      source: string,
+      field: "destination" | "type",
+      value: string,
+    ) => {
+      setDecisions((current) =>
+        current.map((decision) =>
+          decision.regionId === regionId
+            ? {
+                ...decision,
+                columns: decision.columns.map((column) =>
+                  column.source === source
+                    ? {
+                        ...column,
+                        [field]:
+                          field === "destination" && value === ""
+                            ? null
+                            : value,
+                      }
+                    : column,
+                ),
+              }
+            : decision,
+        ),
+      );
+      decisionGenerationRef.current += 1;
+    },
+    [],
+  );
+
+  const resolve = useCallback(async () => {
+    if (plan === null || resolving || plan.application === "applied") return;
+    const submittedDecisions = decisions;
+    const submittedGeneration = decisionGenerationRef.current;
+    setResolving(true);
+    try {
+      const resolved = await client().resolveImport(
+        plan.id,
+        submittedDecisions,
+      );
+      const resolvedDecisions = decisionsFor(resolved);
+      setPlan(resolved);
+      setSavedPlans((current) =>
+        current.map((candidate) =>
+          candidate.id === resolved.id ? resolved : candidate,
+        ),
+      );
+      setApprovedDecisions(resolvedDecisions);
+      if (decisionGenerationRef.current === submittedGeneration) {
+        setDecisions(resolvedDecisions);
+      }
+    } catch (error) {
+      reportError(error);
+    } finally {
+      setResolving(false);
+    }
+  }, [client, decisions, plan, reportError, resolving]);
+
+  const reviewIsCurrent =
+    !resolving &&
+    plan?.state === "ready" &&
+    approvedDecisions !== null &&
+    sameDecisions(decisions, approvedDecisions);
+  const reviewNeedsUpdate =
+    plan?.state === "ready" &&
+    approvedDecisions !== null &&
+    !sameDecisions(decisions, approvedDecisions);
+  const pendingRequest =
+    plan === null ? null : pendingImport(summary.databaseId, plan.id);
+  const mappingLocked =
+    resolving || plan?.application === "applied" || pendingRequest !== null;
+
+  const loadPreview = useCallback(
+    async (regionId: string, cursor: string | null) => {
+      if (plan === null) return;
+      try {
+        setPreview(await client().previewImport(plan.id, regionId, cursor));
+      } catch (error) {
+        reportError(error);
+      }
+    },
+    [client, plan, reportError],
+  );
+
+  const apply = useCallback(async () => {
+    if (plan === null || plan.state !== "ready" || !reviewIsCurrent) return;
+    const pending = pendingImport(summary.databaseId, plan.id);
+    const request = pending?.delivery ?? delivery;
+    const operation = pending?.operation ?? "apply";
+    setDelivery(request);
+    const applied = await runLong("Applying import", (options) =>
+      executePendingImport(
+        {
+          databaseId: summary.databaseId,
+          planId: plan.id,
+          delivery: request,
+          operation,
+        },
+        () =>
+          operation === "delivery"
+            ? client().recordDelivery(plan.id, request, options)
+            : client().applyImport(plan.id, request, options),
       ),
     );
-  }, []);
+    if (applied === null) return;
+    clearPendingImport(summary.databaseId, plan.id);
+    lastCompletedRequest.current = {
+      planId: plan.id,
+      requestId: request.requestId,
+    };
+    setSavedPlans((current) =>
+      current.filter((candidate) => candidate.id !== plan.id),
+    );
+    onSummary(applied.summary);
+    setResult(
+      applied.outcome === "duplicate"
+        ? `This capture was already applied. Added 0 rows and skipped ${applied.skippedRows.toLocaleString()} rows`
+        : `Added ${applied.appendedRows.toLocaleString()} rows, skipped ${applied.skippedRows.toLocaleString()}, and left ${applied.unresolvedRows.toLocaleString()} subject links unresolved`,
+    );
+    setPlan({
+      ...plan,
+      application: "applied",
+      duplicateOf: applied.outcome === "duplicate" ? applied.importId : null,
+      captureIds: applied.captureIds,
+    });
+  }, [
+    client,
+    delivery,
+    onSummary,
+    plan,
+    reviewIsCurrent,
+    runLong,
+    summary.databaseId,
+  ]);
 
-  const onImport = useCallback(() => {
-    void (async () => {
-      if (file === null) {
-        return;
-      }
-      const tables: ImportTableChoice[] = [];
-      file.sources.forEach((source, index) => {
-        const choice = choices[index];
-        if (choice === undefined || !choice.selected) {
-          return;
-        }
-        tables.push({
-          source: source.name,
-          tableName: choice.tableName.trim(),
-          recordIdPrefix: choice.recordIdPrefix.trim(),
-          recordIdPadding: Number(choice.recordIdPadding),
-        });
-      });
+  const recordAgain = useCallback(async () => {
+    if (plan === null || plan.state !== "ready" || resolving) return;
+    const pending = pendingImport(summary.databaseId, plan.id);
+    const operation =
+      pending === null
+        ? plan.application === "applied"
+          ? "delivery"
+          : "apply"
+        : (pending.operation ?? "apply");
+    if (operation === "apply" && !reviewIsCurrent) return;
+    const completed = lastCompletedRequest.current;
+    const request =
+      pending?.delivery ??
+      (completed?.planId === plan.id &&
+      completed.requestId === delivery.requestId
+        ? {
+            ...delivery,
+            requestId: `delivery-${globalThis.crypto.randomUUID()}`,
+          }
+        : delivery);
+    setDelivery(request);
+    const recorded = await runLong("Recording delivery", (options) =>
+      executePendingImport(
+        {
+          databaseId: summary.databaseId,
+          planId: plan.id,
+          delivery: request,
+          operation,
+        },
+        () =>
+          operation === "delivery"
+            ? client().recordDelivery(plan.id, request, options)
+            : client().applyImport(plan.id, request, options),
+      ),
+    );
+    if (recorded === null) return;
+    clearPendingImport(summary.databaseId, plan.id);
+    lastCompletedRequest.current = {
+      planId: plan.id,
+      requestId: request.requestId,
+    };
+    setSavedPlans((current) =>
+      current.filter((candidate) => candidate.id !== plan.id),
+    );
+    onSummary(recorded.summary);
+    setResult(
+      recorded.deliveriesRecorded > 0
+        ? "Recorded a separate delivery event and reused the captured rows"
+        : "This delivery was already recorded; reused the captured rows without adding another event",
+    );
+    setPlan({
+      ...plan,
+      application: "applied",
+      captureIds: recorded.captureIds,
+    });
+  }, [
+    client,
+    delivery,
+    onSummary,
+    plan,
+    reviewIsCurrent,
+    resolving,
+    runLong,
+    summary.databaseId,
+  ]);
 
-      onRunning();
-      setError(null);
-      try {
-        const result = await client().importFile(
-          file.name,
-          file.kind,
-          file.bytes,
-          tables,
-        );
-        const rows = result.tables.reduce(
-          (total, table) => total + table.rowCount,
-          0,
-        );
-        // A source that already carried a Record ID column had it left out,
-        // because identifiers are generated. Saying so is the difference
-        // between a report and a claim: the alternative is a notice that counts
-        // the rows and never mentions the column that did not arrive.
-        const ignored = [
-          ...new Set(
-            result.tables.flatMap((table) => [...table.ignoredColumns]),
-          ),
-        ];
-        // A header too long to be a column name, or one that collided with
-        // another once it had been shortened, is stored under a name the file
-        // did not write. The values are all there, so this is a note rather
-        // than a warning, but it is not something to leave unsaid.
-        const renamed = result.tables.flatMap((table) => [
-          ...table.renamedColumns,
-        ]);
-        onImported(
-          result.summary,
-          `Imported ${result.tables.length === 1 ? "1 table" : `${result.tables.length} tables`} with ${rows === 1 ? "1 row" : `${rows} rows`}${
-            ignored.length === 0
-              ? ""
-              : `. The ${ignored.join(" and ")} column${ignored.length === 1 ? " was" : "s were"} left out, because a Record ID is always generated`
-          }${
-            renamed.length === 0
-              ? ""
-              : `. ${renamed.length === 1 ? "1 column was" : `${renamed.length} columns were`} stored under a shorter name, because the header was longer than a column name can be`
-          }`,
-        );
-        reset();
-      } catch (caught) {
-        // Reported after the message is on screen, and only on this path: the
-        // import that landed has already told the page what it did, and there
-        // is no third outcome for a `finally` to cover.
-        setError(describeFailure(caught));
-        onFailed();
-      }
-    })();
-  }, [choices, client, file, onFailed, onImported, onRunning, reset]);
-
-  const problem =
-    file === null ? null : formProblem(choices, existingTableNames);
-  const isBusy = busy !== null;
+  const setDeliveryField = useCallback(
+    (field: keyof WorkspaceDeliveryContext, value: string) => {
+      setDelivery((current) => ({
+        ...current,
+        [field]:
+          (field === "effectiveDate" || field === "receivedDate") &&
+          value === ""
+            ? null
+            : value,
+      }));
+    },
+    [],
+  );
 
   return (
     <section className={sectionClass} data-testid="workspace-import">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Import data</h2>
-      <p className="mt-3 text-sm text-fd-muted-foreground">
-        Add the rows of a worksheet or a .csv file to this workspace as a table.
-        Every row is given a Record ID, and each column takes the type its own
-        values agree on, or text when they do not. A workbook&apos;s hidden
-        worksheets are not offered
+      <h2 className="font-display text-xl font-semibold">Prepare an import</h2>
+      <p className="mt-2 text-sm text-fd-muted-foreground">
+        Choose one or more Excel workbooks. The worker hashes and reads them in
+        bounded batches, then holds a durable review without changing accepted
+        tables
       </p>
-
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap gap-3">
         <button
           className={secondaryButtonClass}
           data-testid="workspace-import-choose"
-          disabled={isBusy}
+          disabled={busy || resolving}
           onClick={() => inputRef.current?.click()}
           type="button"
         >
-          {busy === "reading" ? (
-            <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-          ) : (
-            <FileUp aria-hidden="true" className="size-4" />
-          )}
-          Choose a file to import
+          <FileSpreadsheet aria-hidden="true" className="size-4" />
+          Choose workbooks
         </button>
         <input
-          accept={WORKSPACE_IMPORT_FILES.accept}
-          aria-label="Choose a file to import"
-          className="hidden"
+          accept={WORKBOOK_FILES.accept}
+          className="sr-only"
           data-testid="workspace-import-input"
+          multiple
           onChange={(event) => {
-            const files = [...(event.target.files ?? [])];
+            chooseFiles(event.target.files);
             event.target.value = "";
-            onFiles(files);
           }}
           ref={inputRef}
           type="file"
         />
+        <button
+          className={primaryButtonClass}
+          data-testid="workspace-import-prepare"
+          disabled={busy || resolving || sources.length === 0}
+          onClick={() => void prepare()}
+          type="button"
+        >
+          {busy ? (
+            <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+          ) : (
+            <PackageCheck aria-hidden="true" className="size-4" />
+          )}
+          Prepare review
+        </button>
       </div>
 
-      {file !== null ? (
-        <div className="mt-6" data-testid="workspace-import-form">
-          <p className="text-sm">
-            <span className="font-mono">{file.name}</span> holds{" "}
-            {file.sources.length === 1
-              ? "one table"
-              : `${file.sources.length} worksheets`}
-            . Choose what to import and what to call it
+      {savedPlans.length === 0 ? null : (
+        <div className="mt-4 rounded-lg border p-4">
+          <h3 className="font-semibold">Saved import reviews</h3>
+          <p className="mt-1 text-xs text-fd-muted-foreground">
+            Captured rows stay in browser storage, so you can resume without
+            choosing the original workbook again
           </p>
-
-          <ul className="mt-4 space-y-4">
-            {file.sources.map((source, index) => {
-              const choice = choices[index];
-              if (choice === undefined) {
-                return null;
-              }
-              return (
-                <li
-                  className="rounded-lg border bg-fd-background/60 p-4"
-                  data-testid="workspace-import-source"
-                  key={source.name}
-                >
-                  <label className="flex items-center gap-2 text-sm font-semibold">
-                    <input
-                      checked={choice.selected}
-                      data-testid="workspace-import-selected"
-                      disabled={isBusy || !isImportable(source)}
-                      onChange={(event) =>
-                        update(index, { selected: event.target.checked })
-                      }
-                      type="checkbox"
-                    />
-                    <span data-testid="workspace-import-source-name">
-                      {source.name}
-                    </span>
-                    <span className="font-normal text-fd-muted-foreground">
-                      {source.rowCount === 1
-                        ? "1 row"
-                        : `${source.rowCount} rows`}
-                      ,{" "}
-                      {source.columnCount === 1
-                        ? "1 column"
-                        : `${source.columnCount} columns`}
-                    </span>
-                  </label>
-
-                  {importBlockers(source).map((blocker) => (
-                    <p
-                      className="mt-2 text-sm text-fd-muted-foreground"
-                      data-testid="workspace-import-blocked"
-                      key={blocker.kind}
-                    >
-                      {blockerText(blocker)}
-                    </p>
-                  ))}
-
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
-                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-fd-muted-foreground">
-                      Table name
-                      <input
-                        className={`mt-1 ${inputClass} font-normal normal-case tracking-normal`}
-                        data-testid="workspace-import-name"
-                        disabled={
-                          isBusy || !choice.selected || !isImportable(source)
-                        }
-                        onChange={(event) =>
-                          update(index, { tableName: event.target.value })
-                        }
-                        type="text"
-                        value={choice.tableName}
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-fd-muted-foreground">
-                      Record ID prefix
-                      <input
-                        className={`mt-1 ${inputClass} font-normal normal-case tracking-normal`}
-                        data-testid="workspace-import-prefix"
-                        disabled={
-                          isBusy || !choice.selected || !isImportable(source)
-                        }
-                        onChange={(event) =>
-                          update(index, { recordIdPrefix: event.target.value })
-                        }
-                        type="text"
-                        value={choice.recordIdPrefix}
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-fd-muted-foreground">
-                      Padding
-                      <input
-                        className={`mt-1 ${inputClass} font-normal normal-case tracking-normal`}
-                        data-testid="workspace-import-padding"
-                        disabled={
-                          isBusy || !choice.selected || !isImportable(source)
-                        }
-                        max={MAX_RECORD_ID_PADDING}
-                        min={0}
-                        onChange={(event) =>
-                          update(index, { recordIdPadding: event.target.value })
-                        }
-                        type="number"
-                        value={choice.recordIdPadding}
-                      />
-                    </label>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {problem === null ? null : (
-            <p
-              className="mt-4 text-sm text-fd-muted-foreground"
-              data-testid="workspace-import-problem"
-            >
-              {problem}
-            </p>
-          )}
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              className={primaryButtonClass}
-              data-testid="workspace-import-run"
-              disabled={isBusy || problem !== null}
-              onClick={onImport}
-              type="button"
-            >
-              {busy === "importing" ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="size-4 animate-spin"
-                />
-              ) : (
-                <Upload aria-hidden="true" className="size-4" />
-              )}
-              Import
-            </button>
-            <button
-              className={secondaryButtonClass}
-              data-testid="workspace-import-cancel"
-              disabled={isBusy}
-              onClick={reset}
-              type="button"
-            >
-              <X aria-hidden="true" className="size-4" />
-              Cancel
-            </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {savedPlans.map((saved) => (
+              <button
+                className={secondaryButtonClass}
+                data-testid="workspace-import-resume"
+                disabled={resolving}
+                key={saved.id}
+                onClick={() => {
+                  const pending = pendingImport(summary.databaseId, saved.id);
+                  const savedDecisions = decisionsFor(saved);
+                  setPlan(saved);
+                  decisionGenerationRef.current += 1;
+                  setDecisions(savedDecisions);
+                  setApprovedDecisions(
+                    saved.state === "ready" ? savedDecisions : null,
+                  );
+                  setPreview(null);
+                  setResult(null);
+                  setDelivery(
+                    pending?.delivery ?? {
+                      ...emptyDelivery(),
+                      requestId: `delivery-${globalThis.crypto.randomUUID()}`,
+                    },
+                  );
+                }}
+                type="button"
+              >
+                {saved.application === "applied"
+                  ? "Finish recovery "
+                  : "Resume "}
+                {saved.regions.map((region) => region.fileName).join(", ")}
+              </button>
+            ))}
           </div>
         </div>
-      ) : null}
+      )}
+      {ignoredPlanCount === 0 ? null : (
+        <p className="mt-4 rounded-lg border p-3 text-sm" role="status">
+          {ignoredPlanCount.toLocaleString()} unreadable saved import files were
+          ignored
+        </p>
+      )}
 
-      {error ? (
-        <pre
-          aria-live="polite"
-          className="mt-4 overflow-x-auto whitespace-pre-wrap rounded-lg border border-fd-primary/40 bg-fd-accent/30 px-4 py-3 text-xs leading-6 text-fd-accent-foreground"
-          data-testid="workspace-import-error"
-        >
-          {error}
-        </pre>
-      ) : null}
+      {sources.length === 0 ? null : (
+        <div className="mt-5 space-y-3" data-testid="workspace-import-sources">
+          {sources.map((source) => (
+            <article
+              className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[minmax(0,1fr)_12rem_12rem]"
+              data-testid="workspace-import-source"
+              key={source.id}
+            >
+              <div className="min-w-0">
+                <p className="truncate font-mono text-sm">{source.file.name}</p>
+                <p className="text-xs text-fd-muted-foreground">
+                  {source.file.size.toLocaleString()} bytes
+                </p>
+              </div>
+              <label className="text-xs">
+                Business role
+                <input
+                  className={`${inputClass} mt-1`}
+                  data-testid="workspace-import-role"
+                  onChange={(event) =>
+                    updateSource(source.id, "role", event.target.value)
+                  }
+                  placeholder="inventory"
+                  value={source.role}
+                />
+              </label>
+              <label className="text-xs">
+                Source revision
+                <input
+                  className={`${inputClass} mt-1`}
+                  data-testid="workspace-import-revision"
+                  onChange={(event) =>
+                    updateSource(source.id, "revision", event.target.value)
+                  }
+                  placeholder="Iteration 2"
+                  value={source.revision}
+                />
+              </label>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {plan === null ? null : (
+        <div className="mt-6" data-testid="workspace-import-review">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h3 className="font-semibold">
+              Review {plan.totalRows.toLocaleString()} source rows
+            </h3>
+            <span className="font-mono text-xs uppercase">
+              {plan.state.replace("-", " ")}
+            </span>
+          </div>
+          {plan.duplicateOf === null ? null : (
+            <p
+              className="mt-3 rounded-lg border bg-fd-muted/40 p-3 text-sm"
+              data-testid="workspace-import-duplicate"
+            >
+              The same captured contents and selection were already applied.
+              Applying again adds no observation rows
+            </p>
+          )}
+          <div className="mt-4 space-y-4">
+            {plan.regions.map((region, regionIndex) => {
+              const decision = decisions.find(
+                (entry) => entry.regionId === region.id,
+              );
+              if (decision === undefined) return null;
+              return (
+                <article
+                  className="rounded-lg border p-4"
+                  data-testid="workspace-import-region"
+                  key={region.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-semibold">
+                        {region.fileName}: {region.label}
+                      </h4>
+                      <p className="text-xs text-fd-muted-foreground">
+                        {region.rowCount.toLocaleString()} rows,{" "}
+                        {region.columns.length} columns
+                      </p>
+                    </div>
+                    <button
+                      className={secondaryButtonClass}
+                      data-testid="workspace-import-preview"
+                      onClick={() => void loadPreview(region.id, null)}
+                      type="button"
+                    >
+                      Preview rows
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr]">
+                    <label className="text-xs">
+                      Route
+                      <select
+                        className={`${inputClass} mt-1`}
+                        data-testid="workspace-import-route"
+                        disabled={busy || mappingLocked}
+                        onChange={(event) =>
+                          updateRoute(
+                            region.id,
+                            event.target.value === "append"
+                              ? "append"
+                              : "create",
+                            decision.route.table,
+                          )
+                        }
+                        value={decision.route.kind}
+                      >
+                        <option value="create">Create table</option>
+                        <option value="append">Append to table</option>
+                      </select>
+                    </label>
+                    <label className="text-xs">
+                      Destination table
+                      <input
+                        className={`${inputClass} mt-1`}
+                        data-testid="workspace-import-table"
+                        disabled={busy || mappingLocked}
+                        list={`workspace-tables-${regionIndex}`}
+                        onChange={(event) =>
+                          updateRoute(
+                            region.id,
+                            decision.route.kind,
+                            event.target.value,
+                          )
+                        }
+                        value={decision.route.table}
+                      />
+                      <datalist id={`workspace-tables-${regionIndex}`}>
+                        {existingTables.map((table) => (
+                          <option key={table} value={table} />
+                        ))}
+                      </datalist>
+                    </label>
+                  </div>
+                  {region.conflicts.length === 0 ? null : (
+                    <div
+                      className="mt-3 rounded-lg border border-fd-primary/40 p-3 text-sm text-fd-primary"
+                      data-testid="workspace-import-conflicts"
+                    >
+                      {region.conflicts.map((conflict) => (
+                        <p key={conflict}>{conflict}</p>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full min-w-[42rem] text-left text-xs">
+                      <thead>
+                        <tr>
+                          <th className="p-2">Source column</th>
+                          <th className="p-2">Destination column</th>
+                          <th className="p-2">Type</th>
+                          <th className="p-2">Compatibility</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {region.columns.map((column) => {
+                          const mapped = decision.columns.find(
+                            (entry) => entry.source === column.source,
+                          );
+                          if (mapped === undefined) return null;
+                          return (
+                            <tr className="border-t" key={column.source}>
+                              <td className="p-2 font-mono">{column.source}</td>
+                              <td className="p-2">
+                                <input
+                                  aria-label={`${column.source} destination`}
+                                  className={inputClass}
+                                  disabled={busy || mappingLocked}
+                                  onChange={(event) =>
+                                    updateColumn(
+                                      region.id,
+                                      column.source,
+                                      "destination",
+                                      event.target.value,
+                                    )
+                                  }
+                                  value={mapped.destination ?? ""}
+                                />
+                              </td>
+                              <td className="p-2">
+                                <select
+                                  aria-label={`${column.source} type`}
+                                  className={inputClass}
+                                  disabled={busy || mappingLocked}
+                                  onChange={(event) =>
+                                    updateColumn(
+                                      region.id,
+                                      column.source,
+                                      "type",
+                                      event.target.value,
+                                    )
+                                  }
+                                  value={mapped.type}
+                                >
+                                  {COLUMN_TYPES.map((type) => (
+                                    <option key={type} value={type}>
+                                      {type}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="p-2">
+                                {column.compatible
+                                  ? "Compatible"
+                                  : (column.message ?? "Needs review")}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <button
+            className={secondaryButtonClass}
+            data-testid="workspace-import-resolve"
+            disabled={busy || mappingLocked}
+            onClick={() => void resolve()}
+            type="button"
+          >
+            Update review
+          </button>
+          {reviewNeedsUpdate ? (
+            <p
+              className="mt-3 rounded-lg border border-fd-primary/40 p-3 text-sm text-fd-primary"
+              data-testid="workspace-import-review-stale"
+              role="status"
+            >
+              The route or column mapping changed. Update the review before
+              applying this import
+            </p>
+          ) : null}
+
+          {preview === null ? null : (
+            <div
+              className="mt-5 overflow-x-auto rounded-lg border"
+              data-testid="workspace-import-preview-page"
+            >
+              <table className="min-w-full text-left text-xs">
+                <thead>
+                  <tr>
+                    {preview.columns.map((column) => (
+                      <th className="bg-fd-muted p-2" key={column}>
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.rows.map((row, index) => (
+                    <tr
+                      className="border-t"
+                      key={`${preview.cursor ?? "first"}:${String(index)}`}
+                    >
+                      {row.map((cell, columnIndex) => (
+                        <td
+                          className="max-w-64 truncate p-2"
+                          key={`${String(index)}:${String(columnIndex)}`}
+                        >
+                          {cell === null ? "" : String(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {preview.nextCursor === null ? null : (
+                <button
+                  className={`${secondaryButtonClass} m-3`}
+                  data-testid="workspace-import-preview-next"
+                  onClick={() =>
+                    void loadPreview(preview.regionId, preview.nextCursor)
+                  }
+                  type="button"
+                >
+                  Next rows
+                </button>
+              )}
+            </div>
+          )}
+
+          <fieldset
+            className="mt-6 grid gap-3 rounded-lg border p-4 sm:grid-cols-2"
+            data-testid="workspace-delivery-context"
+          >
+            <legend className="px-2 font-semibold">Delivery context</legend>
+            <label className="text-xs">
+              Request ID
+              <input
+                className={`${inputClass} mt-1`}
+                onChange={(event) =>
+                  setDeliveryField("requestId", event.target.value)
+                }
+                value={delivery.requestId}
+              />
+            </label>
+            <label className="text-xs">
+              Vendor
+              <input
+                className={`${inputClass} mt-1`}
+                data-testid="workspace-delivery-vendor"
+                onChange={(event) =>
+                  setDeliveryField("vendor", event.target.value)
+                }
+                value={delivery.vendor}
+              />
+            </label>
+            <label className="text-xs">
+              Entity
+              <input
+                className={`${inputClass} mt-1`}
+                data-testid="workspace-delivery-entity"
+                onChange={(event) =>
+                  setDeliveryField("entity", event.target.value)
+                }
+                value={delivery.entity}
+              />
+            </label>
+            <label className="text-xs">
+              Phase or sprint
+              <input
+                className={`${inputClass} mt-1`}
+                data-testid="workspace-delivery-phase"
+                onChange={(event) =>
+                  setDeliveryField("phase", event.target.value)
+                }
+                value={delivery.phase}
+              />
+            </label>
+            <label className="text-xs">
+              Coverage
+              <select
+                className={`${inputClass} mt-1`}
+                data-testid="workspace-delivery-coverage"
+                onChange={(event) =>
+                  setDeliveryField("coverage", event.target.value)
+                }
+                value={delivery.coverage}
+              >
+                <option value="unknown">Unknown</option>
+                <option value="full">Full snapshot</option>
+                <option value="partial">Partial snapshot</option>
+              </select>
+            </label>
+            <label className="text-xs">
+              Effective date
+              <input
+                className={`${inputClass} mt-1`}
+                onChange={(event) =>
+                  setDeliveryField("effectiveDate", event.target.value)
+                }
+                type="date"
+                value={delivery.effectiveDate ?? ""}
+              />
+            </label>
+            <label className="text-xs">
+              Received date
+              <input
+                className={`${inputClass} mt-1`}
+                onChange={(event) =>
+                  setDeliveryField("receivedDate", event.target.value)
+                }
+                type="date"
+                value={delivery.receivedDate ?? ""}
+              />
+            </label>
+            <label className="text-xs sm:col-span-2">
+              Note
+              <input
+                className={`${inputClass} mt-1`}
+                onChange={(event) =>
+                  setDeliveryField("note", event.target.value)
+                }
+                value={delivery.note}
+              />
+            </label>
+          </fieldset>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              className={primaryButtonClass}
+              data-testid="workspace-import-apply"
+              disabled={
+                busy ||
+                result !== null ||
+                plan.state !== "ready" ||
+                !reviewIsCurrent ||
+                delivery.requestId.trim() === ""
+              }
+              onClick={() => void apply()}
+              type="button"
+            >
+              <PackageCheck aria-hidden="true" className="size-4" />
+              Apply import
+            </button>
+            {plan.duplicateOf === null ? null : (
+              <button
+                className={secondaryButtonClass}
+                data-testid="workspace-delivery-record-reuse"
+                disabled={
+                  busy ||
+                  resolving ||
+                  plan.state !== "ready" ||
+                  (plan.application === "pending" && !reviewIsCurrent) ||
+                  delivery.requestId.trim() === ""
+                }
+                onClick={() => void recordAgain()}
+                type="button"
+              >
+                <Truck aria-hidden="true" className="size-4" />
+                Record another delivery
+              </button>
+            )}
+          </div>
+          {result === null ? null : (
+            <p
+              className="mt-4 rounded-lg border bg-fd-muted/40 p-3 text-sm"
+              data-testid="workspace-import-result"
+            >
+              {result}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

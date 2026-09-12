@@ -480,7 +480,8 @@ function PrivacyNotice() {
       data-testid="privacy-notice"
     >
       <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      Your files never leave this browser tab. There is no server
+      Files are processed locally in your browser and are not uploaded to
+      ConsultChimps
     </p>
   );
 }

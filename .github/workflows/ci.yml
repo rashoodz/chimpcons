@@ -58,6 +58,10 @@ jobs:
         if: matrix.checks == 'full'
         run: pnpm check
 
+      - name: Build and verify the portable CLI archive
+        if: matrix.checks == 'full'
+        run: pnpm bundle:cli
+
       - name: Build and run the test suites on this Node line
         if: matrix.checks == 'runtime'
         run: |
@@ -110,8 +114,9 @@ jobs:
 
       # Built without NEXT_PUBLIC_BASE_PATH so the export serves from "/",
       # which is what the suite's static server and the tests assume.
-      - name: Build the documentation site
-        run: pnpm --filter @consultchimps/docs... build
+      - name: Build the documentation site and CLI for file interchange tests
+        run:
+          pnpm --filter @consultchimps/docs... --filter consultchimps... build
 
       - name: Run the browser smoke tests
         run: pnpm --filter @consultchimps/docs e2e

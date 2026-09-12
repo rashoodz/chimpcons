@@ -1,0 +1,774 @@
+[
+  {
+    "label": "version",
+    "ms": 11,
+    "rows": [
+      {
+        "\"version\"()": "v1.5.4",
+        "threads": "1"
+      }
+    ]
+  },
+  {
+    "label": "register-file",
+    "bytes": 170663567
+  },
+  {
+    "label": "load-excel-extension",
+    "ms": 1038,
+    "rows": []
+  },
+  {
+    "label": "create-observations",
+    "ms": 5,
+    "rows": []
+  },
+  {
+    "label": "file-0-sheet-1",
+    "ms": 10691,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-2",
+    "ms": 11225,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-3",
+    "ms": 11264,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-4",
+    "ms": 10876,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-5",
+    "ms": 12543,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-6",
+    "ms": 12379,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-0-sheet-7",
+    "ms": 12426,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-0",
+    "ms": 81490
+  },
+  {
+    "label": "checkpoint-0",
+    "ms": 36,
+    "rows": []
+  },
+  {
+    "label": "file-1-sheet-1",
+    "ms": 12265,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-2",
+    "ms": 12510,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-3",
+    "ms": 12024,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-4",
+    "ms": 12766,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-5",
+    "ms": 12315,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-6",
+    "ms": 12425,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-1-sheet-7",
+    "ms": 12457,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-1",
+    "ms": 86772
+  },
+  {
+    "label": "checkpoint-1",
+    "ms": 34,
+    "rows": []
+  },
+  {
+    "label": "file-2-sheet-1",
+    "ms": 12467,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-2",
+    "ms": 12582,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-3",
+    "ms": 12561,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-4",
+    "ms": 12533,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-5",
+    "ms": 12568,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-6",
+    "ms": 12429,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-2-sheet-7",
+    "ms": 12055,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-2",
+    "ms": 87203
+  },
+  {
+    "label": "checkpoint-2",
+    "ms": 35,
+    "rows": []
+  },
+  {
+    "label": "file-3-sheet-1",
+    "ms": 12538,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-2",
+    "ms": 12537,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-3",
+    "ms": 12571,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-4",
+    "ms": 12303,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-5",
+    "ms": 12469,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-6",
+    "ms": 12541,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-3-sheet-7",
+    "ms": 12420,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-3",
+    "ms": 87389
+  },
+  {
+    "label": "checkpoint-3",
+    "ms": 35,
+    "rows": []
+  },
+  {
+    "label": "file-4-sheet-1",
+    "ms": 12513,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-2",
+    "ms": 12536,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-3",
+    "ms": 12560,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-4",
+    "ms": 12807,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-5",
+    "ms": 13095,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-6",
+    "ms": 12776,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-4-sheet-7",
+    "ms": 12703,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-4",
+    "ms": 88999
+  },
+  {
+    "label": "checkpoint-4",
+    "ms": 35,
+    "rows": []
+  },
+  {
+    "label": "file-5-sheet-1",
+    "ms": 12308,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-2",
+    "ms": 12982,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-3",
+    "ms": 13182,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-4",
+    "ms": 12515,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-5",
+    "ms": 12599,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-6",
+    "ms": 12603,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-5-sheet-7",
+    "ms": 12473,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-5",
+    "ms": 88670
+  },
+  {
+    "label": "checkpoint-5",
+    "ms": 36,
+    "rows": []
+  },
+  {
+    "label": "file-6-sheet-1",
+    "ms": 12620,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-2",
+    "ms": 12469,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-3",
+    "ms": 12686,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-4",
+    "ms": 12485,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-5",
+    "ms": 12504,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-6",
+    "ms": 12982,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-6-sheet-7",
+    "ms": 12624,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-6",
+    "ms": 88380
+  },
+  {
+    "label": "checkpoint-6",
+    "ms": 35,
+    "rows": []
+  },
+  {
+    "label": "file-7-sheet-1",
+    "ms": 12537,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-2",
+    "ms": 12771,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-3",
+    "ms": 13059,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-4",
+    "ms": 12729,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-5",
+    "ms": 12691,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-6",
+    "ms": 12743,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-7-sheet-7",
+    "ms": 12696,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-7",
+    "ms": 89255
+  },
+  {
+    "label": "checkpoint-7",
+    "ms": 44,
+    "rows": []
+  },
+  {
+    "label": "file-8-sheet-1",
+    "ms": 12639,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-2",
+    "ms": 12675,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-3",
+    "ms": 12960,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-4",
+    "ms": 12619,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-5",
+    "ms": 12341,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-6",
+    "ms": 12322,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-8-sheet-7",
+    "ms": 12297,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-8",
+    "ms": 87861
+  },
+  {
+    "label": "checkpoint-8",
+    "ms": 49,
+    "rows": []
+  },
+  {
+    "label": "file-9-sheet-1",
+    "ms": 12386,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-2",
+    "ms": 12634,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-3",
+    "ms": 12614,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-4",
+    "ms": 12638,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-5",
+    "ms": 12603,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-6",
+    "ms": 12493,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "file-9-sheet-7",
+    "ms": 12511,
+    "rows": [
+      {
+        "Count": "1000000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-9",
+    "ms": 87898
+  },
+  {
+    "label": "checkpoint-9",
+    "ms": 47,
+    "rows": []
+  },
+  {
+    "label": "excel-count",
+    "ms": 71,
+    "rows": [
+      {
+        "n": "70000000",
+        "cdes": "7000000"
+      }
+    ]
+  },
+  {
+    "label": "reopen-excel",
+    "ms": 112,
+    "rows": [
+      {
+        "n": "70000000",
+        "cdes": "7000000"
+      }
+    ]
+  },
+  {
+    "label": "export",
+    "bytes": 422850560
+  },
+  {
+    "label": "browser",
+    "version": "151.0.7922.34"
+  }
+]

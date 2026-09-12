@@ -44,16 +44,44 @@ issues use these terms with exactly these meanings.
   reported as a warning" (`strip-warn`), "Refused before anything is written"
   (`refuse`), and "Needs review" (no declared cell).
 
-## Database workspace (draft)
+## Database workspace
 
-First draft for later review, added with the ADR 0003 foundation. Nothing here
-is final; the maintainer will refine the terms and the record-editing verbs are
-still to agree.
+[ADR 0005](docs/adr/0005-persistent-database-imports.md) defines persistent
+storage and import identity. Analytics UI work is paused indefinitely.
 
-- **Workspace**: the stateful page for one project's database, opened from a
-  file, edited in place, and saved back to that file.
+- **Workspace**: the stateful page for creating or opening a persistent local
+  database, managing schemas, reviewing imports, and exporting copies. A browser
+  working file can be distinct from the original selected file.
 - **Database**: the local relational store for a project, held in a single file
-  that carries its own tables, schema, and identifier state.
+  that carries its own tables, schema, and identifier state. After initial
+  import, it is the authoritative working copy for subsequent queries and edits.
+- **Database import**: the introduction of selected source data into a database.
+  Continuing work on that database does not require repeating the import.
+- **Import recipe**: reusable source selection, table routing, mapping,
+  matching, and conflict rules for database imports.
+- **Import plan**: the proposed table and record changes for particular captured
+  sources against a particular database baseline, derived from an import recipe.
+- **Import ID**: an identifier assigned by ConsultChimps to a captured database
+  import, independent of identifiers in the source files.
+- **Imported Row ID**: an identifier assigned by ConsultChimps to a captured
+  source row. Distinct imported rows can later be found to describe one entity.
+- **Source File ID**: an identifier for a captured file, distinct from its
+  display filename and from an import that may include several files.
+- **Delivery event**: a recorded touch point when a vendor supplies or reaffirms
+  a deliverable or claim. Separate events can reference the same file contents.
+- **Deliverable scope**: the entity, deliverable type, phase, sprint, and
+  covered population that a submission describes. Coverage can be full, partial,
+  an explicit set of changes, or unknown.
+- **Reported metric**: a vendor's stated count with its unit, scope, and date,
+  distinct from a count calculated from delivered rows.
+- **Delivery membership**: the association between a delivery event and the
+  captured observations or relationship assertions it supplied.
+- **Source observation**: what a source row reported in a particular file and
+  import context. Later classifications do not replace that observation.
+- **Current inventory view**: the inventory selected as current under an
+  explicit revision and curation policy, distinct from all source observations.
+- **Data-quality rule**: a declared rule for checking or correcting imported
+  data, abbreviated DQ rule.
 - **Table**: a named set of columns and the records held under them.
 - **Record**: one row of a table.
 - **Record ID**: the human-readable, always-generated, immutable identifier for
@@ -65,6 +93,33 @@ still to agree.
   a formula rather than entered by hand.
 - **Dashboard** (defined for later): a saved arrangement of charts and figures
   drawn from the database.
+
+## Dataset inventory terminology
+
+- **Entity**: a participating organization in a data inventory. Distinct from a
+  database record.
+- **Inventory vendor**: a supplier of dataset and attribute inventory records.
+- **Use-case contributor**: a person or organization defining use cases and
+  mapping their data needs to submitted inventories.
+- **Critical data element**: a data element designated as critical under a
+  declared classification policy, abbreviated CDE.
+- **Dataset record**: a row representing a dataset in a submitted Excel
+  workbook.
+- **Master dataset**: a resolved dataset identity that can be referenced by
+  several submitted dataset records. Its identity persists through renames,
+  vendor submissions, and phases unless an explicit split or merge changes it.
+- **Master dataset register**: the list of resolved datasets with their current
+  accepted details, attribute and CDE memberships, and cleansing history.
+- **Cleansing event**: a reported or verified cleansing activity for a dataset
+  revision and a declared scope, distinct from receiving its inventory file.
+- **Inventory revision**: a particular version of an entity's inventory,
+  including its dataset and attribute descriptions and classifications.
+- **Use-case mapping**: a statement linking an AI use case to the datasets,
+  attributes, or subsets it needs.
+- **CDE recommendation**: a proposal to classify an attribute as a CDE because a
+  use case requires it. Distinct from its existing inventory classification.
+- **Inventory drift**: a relevant change between the inventory a use-case
+  mapping was based on and the inventory now held in the database.
 
 ## Power BI (draft)
 

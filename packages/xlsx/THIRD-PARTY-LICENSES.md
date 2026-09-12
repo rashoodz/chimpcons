@@ -39,6 +39,6 @@ limitations under the License.
 
 ## Dependencies installed from the npm registry
 
-`jszip` (MIT or GPL-3.0-or-later) and `saxes` (ISC) remain declared
-dependencies. They are installed from the npm registry with their own license
-files and are not bundled into this package's output.
+`@zip.js/zip.js` (BSD-3-Clause), `jszip` (MIT or GPL-3.0-or-later), and `saxes`
+(ISC) remain declared dependencies. They are installed from the npm registry
+with their own license files and are not bundled into this package's output.

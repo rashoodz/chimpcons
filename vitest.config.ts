@@ -7,7 +7,7 @@ export default defineConfig({
         test: {
           name: "packages",
           include: ["packages/**/*.test.ts"],
-          exclude: ["packages/cli/test/**"],
+          exclude: ["**/node_modules/**", "packages/cli/test/**"],
           testTimeout: 15_000,
         },
       },

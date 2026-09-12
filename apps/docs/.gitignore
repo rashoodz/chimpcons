@@ -7,7 +7,8 @@
 /playwright-report
 /playwright/.cache
 /test-results
-# Generated at build time from the installed sql.js by scripts/copy-sql-wasm.ts.
+# Generated at build time from the installed database engines.
+/public/database-wasm
 /public/sql-wasm
 *.tsbuildinfo
 next-env.d.ts

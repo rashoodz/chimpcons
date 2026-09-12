@@ -8,6 +8,8 @@ playwright-report
 test-results
 out
 node_modules
+apps/docs/public/database-wasm
+apps/docs/public/sql-wasm
 pnpm-lock.yaml
 # CLAUDE.md is a repository symlink to AGENTS.md; on Windows checkouts it is
 # materialized as the symlink target text, which Prettier cannot parse.

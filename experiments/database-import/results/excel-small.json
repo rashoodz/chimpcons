@@ -1,0 +1,83 @@
+[
+  {
+    "label": "environment",
+    "browser": "151.0.7922.34",
+    "node": "v24.18.0",
+    "mode": "excel-small"
+  },
+  {
+    "label": "version",
+    "milliseconds": 13,
+    "rows": [
+      {
+        "version": "v1.5.4",
+        "threads": "1"
+      }
+    ]
+  },
+  {
+    "label": "source",
+    "bytes": 6422896
+  },
+  {
+    "label": "extension",
+    "milliseconds": 1401,
+    "rows": []
+  },
+  {
+    "label": "create",
+    "milliseconds": 6,
+    "rows": []
+  },
+  {
+    "label": "file-0-sheet-1",
+    "milliseconds": 3250,
+    "rows": [
+      {
+        "Count": "300000"
+      }
+    ]
+  },
+  {
+    "label": "workbook-0",
+    "milliseconds": 3251
+  },
+  {
+    "label": "checkpoint-0",
+    "milliseconds": 15,
+    "rows": []
+  },
+  {
+    "label": "reopened",
+    "milliseconds": 17,
+    "rows": [
+      {
+        "n": "300000",
+        "cdes": "30000"
+      }
+    ]
+  },
+  {
+    "label": "curation",
+    "milliseconds": 9,
+    "rows": [
+      {
+        "Count": "1"
+      }
+    ]
+  },
+  {
+    "label": "export",
+    "bytes": 2109440,
+    "milliseconds": 5
+  },
+  {
+    "label": "native-verification",
+    "rows": [
+      {
+        "n": "300000",
+        "cdes": "30000"
+      }
+    ]
+  }
+]

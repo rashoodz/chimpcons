@@ -16,10 +16,11 @@ describe("browser tool groups", () => {
       "Excel",
       "PDF",
       "PowerPoint",
+      "Database",
     ]);
   });
 
-  it("assigns every registry operation to a document type", () => {
+  it("assigns every registry operation to a category", () => {
     expect(TOOLS.every((tool) => tool.category.length > 0)).toBe(true);
   });
 });

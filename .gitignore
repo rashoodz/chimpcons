@@ -2,6 +2,7 @@
 node_modules/
 dist/
 dist-bundle/
+dist-archives/
 coverage/
 .next/
 .source/

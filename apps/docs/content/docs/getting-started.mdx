@@ -16,9 +16,13 @@ are for repeatable, scripted work across many files at once.
 
 - Node.js 22 or later
 
-No npm access? Every release ships a standalone `consultchimps.mjs` bundle on
+No npm access? Releases with persistent database commands ship portable archives
+on
 [GitHub releases](https://github.com/consultchimps/consultchimps/releases/latest)
-that runs with `node consultchimps.mjs --help` and needs no installation.
+that include native engine dependencies. Choose the archive matching your
+operating system and architecture, extract it, and keep its `node_modules`
+folder beside `consultchimps.mjs`. Run `node consultchimps.mjs --help` with
+Node 24. Older single-file bundles do not include the database commands.
 
 ## Try the CLI
 
@@ -131,6 +135,20 @@ consultchimps pptx populate \
   --template-slide 2 \
   --output outputs/company-profiles.pptx
 ```
+
+### Create a local database
+
+```bash
+consultchimps db create -o inventory.duckdb
+consultchimps db plan inventory.duckdb --input inventory.xlsx -o review.ccplan
+consultchimps db inspect review.ccplan
+consultchimps db apply inventory.duckdb --plan review.ccplan
+```
+
+Or [open the browser workspace](/workspace). It uses a persistent browser
+working copy and exports a separate OS file. See the
+[database guide](/docs/tools/data-workspace) for duplicate handling, table
+routing, and delivery history.
 
 ## Open the documentation locally
 

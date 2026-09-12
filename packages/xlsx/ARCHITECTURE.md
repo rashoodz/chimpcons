@@ -51,6 +51,44 @@ platform-pure `Uint8Array` I/O. This is the single owner of ZIP and part-path
 concerns; the previous parallel implementations in `values-only.ts`,
 `workbook-column-split.ts`, and `preserve-table-split.ts` converge here.
 
+### Bounded read path (`src/stream/`)
+
+Database import uses a read-only path that does not construct `WorkbookModel` or
+hold a ZIP entry in memory. `src/stream/` owns this path. It accepts a
+runtime-neutral `RandomAccessSource`, reads ZIP ranges in configured chunks, and
+inflates worksheet XML through a SAX parser with backpressure. It never writes
+into the source workbook.
+
+Inspection reads `workbook.xml`, relationship parts, Table definitions, and
+other bounded metadata. It discovers Tables from worksheet relationships and
+does not inflate worksheets. Opening a region loads styles and streams shared
+strings into caller-provided scratch files. One scratch file stores UTF-8
+payloads. A second stores one 12-byte offset and length record per string, so
+shared-string cardinality does not create a JavaScript array of offsets.
+
+Region selection accepts an Excel Table, a named or explicit single-sheet A1
+rectangle, or a worksheet plus its declared header row. Table header and totals
+rows come from the Table definition. Other selectors read the first row of the
+rectangle as the header. Rows retain physical worksheet coordinates. Numeric
+cells retain their XML token, formulas distinguish cached values from missing
+caches, and date-formatted numbers use the workbook's 1900 or 1904 date system.
+The reader does not calculate formulas.
+
+The default limits are 10,000 ZIP entries, 64 MiB for the ZIP central directory,
+16 MiB for each metadata part, 4 GiB for each streamed or otherwise large entry,
+8 GiB expanded across the package, 50 million shared strings, 16 MiB per cell
+payload, and 1 MiB per source range read. Callers may lower or raise these
+limits explicitly. CRC checks remain on for every inflated part. Finishing a
+bounded region, including an early caller return, drains its worksheet through
+the CRC check under stream backpressure. Explicit cancellation aborts that
+drain. Internal relationships resolve relative to their owner part. A
+relationship used by this reader fails if its target is external or leaves the
+package.
+
+`src/stream/` is the other permitted ZIP owner because its input and memory
+contract differs from the editable package model. Code outside `src/package/`
+and `src/stream/` still may not import a ZIP library or parse OOXML directly.
+
 ### L1: Document model (`src/model/`)
 
 Structured, lazily-parsed views over parts:

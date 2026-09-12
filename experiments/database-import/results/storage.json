@@ -1,0 +1,346 @@
+[
+  {
+    "label": "environment",
+    "browser": "151.0.7922.34",
+    "node": "v24.18.0",
+    "mode": "storage"
+  },
+  {
+    "label": "version",
+    "milliseconds": 11,
+    "rows": [
+      {
+        "version": "v1.5.4",
+        "threads": "1"
+      }
+    ]
+  },
+  {
+    "label": "create",
+    "milliseconds": 6,
+    "rows": []
+  },
+  {
+    "label": "load-300000",
+    "milliseconds": 117,
+    "rows": [
+      {
+        "Count": "300000"
+      }
+    ]
+  },
+  {
+    "label": "checkpoint-300000",
+    "milliseconds": 6,
+    "rows": []
+  },
+  {
+    "label": "cdes-300000",
+    "milliseconds": 2,
+    "rows": [
+      {
+        "cdes": "30000"
+      }
+    ]
+  },
+  {
+    "label": "load-7000000",
+    "milliseconds": 1899,
+    "rows": [
+      {
+        "Count": "6700000"
+      }
+    ]
+  },
+  {
+    "label": "checkpoint-7000000",
+    "milliseconds": 4,
+    "rows": []
+  },
+  {
+    "label": "cdes-7000000",
+    "milliseconds": 7,
+    "rows": [
+      {
+        "cdes": "700000"
+      }
+    ]
+  },
+  {
+    "label": "load-70000000",
+    "milliseconds": 17123,
+    "rows": [
+      {
+        "Count": "63000000"
+      }
+    ]
+  },
+  {
+    "label": "checkpoint-70000000",
+    "milliseconds": 14,
+    "rows": []
+  },
+  {
+    "label": "cdes-70000000",
+    "milliseconds": 57,
+    "rows": [
+      {
+        "cdes": "7000000"
+      }
+    ]
+  },
+  {
+    "label": "datasets",
+    "milliseconds": 18,
+    "rows": [
+      {
+        "Count": "100000"
+      }
+    ]
+  },
+  {
+    "label": "join-1",
+    "milliseconds": 59,
+    "rows": [
+      {
+        "domain_id": 0,
+        "n": "350000",
+        "calculated": "183713250.0000"
+      },
+      {
+        "domain_id": 1,
+        "n": "350000",
+        "calculated": "183716925.0000"
+      },
+      {
+        "domain_id": 2,
+        "n": "350000",
+        "calculated": "183720600.0000"
+      },
+      {
+        "domain_id": 3,
+        "n": "350000",
+        "calculated": "183724275.0000"
+      },
+      {
+        "domain_id": 4,
+        "n": "350000",
+        "calculated": "183727950.0000"
+      },
+      {
+        "domain_id": 5,
+        "n": "350000",
+        "calculated": "183731625.0000"
+      },
+      {
+        "domain_id": 6,
+        "n": "350000",
+        "calculated": "183735300.0000"
+      },
+      {
+        "domain_id": 7,
+        "n": "350000",
+        "calculated": "183738975.0000"
+      },
+      {
+        "domain_id": 8,
+        "n": "350000",
+        "calculated": "183742650.0000"
+      },
+      {
+        "domain_id": 9,
+        "n": "350000",
+        "calculated": "183746325.0000"
+      },
+      {
+        "domain_id": 10,
+        "n": "350000",
+        "calculated": "183750000.0000"
+      },
+      {
+        "domain_id": 11,
+        "n": "350000",
+        "calculated": "183753675.0000"
+      },
+      {
+        "domain_id": 12,
+        "n": "350000",
+        "calculated": "183757350.0000"
+      },
+      {
+        "domain_id": 13,
+        "n": "350000",
+        "calculated": "183761025.0000"
+      },
+      {
+        "domain_id": 14,
+        "n": "350000",
+        "calculated": "183764700.0000"
+      },
+      {
+        "domain_id": 15,
+        "n": "350000",
+        "calculated": "183768375.0000"
+      },
+      {
+        "domain_id": 16,
+        "n": "350000",
+        "calculated": "183772050.0000"
+      },
+      {
+        "domain_id": 17,
+        "n": "350000",
+        "calculated": "183775725.0000"
+      },
+      {
+        "domain_id": 18,
+        "n": "350000",
+        "calculated": "183779400.0000"
+      },
+      {
+        "domain_id": 19,
+        "n": "350000",
+        "calculated": "183783075.0000"
+      }
+    ]
+  },
+  {
+    "label": "join-2",
+    "milliseconds": 37,
+    "rows": [
+      {
+        "domain_id": 0,
+        "n": "350000",
+        "calculated": "183713250.0000"
+      },
+      {
+        "domain_id": 1,
+        "n": "350000",
+        "calculated": "183716925.0000"
+      },
+      {
+        "domain_id": 2,
+        "n": "350000",
+        "calculated": "183720600.0000"
+      },
+      {
+        "domain_id": 3,
+        "n": "350000",
+        "calculated": "183724275.0000"
+      },
+      {
+        "domain_id": 4,
+        "n": "350000",
+        "calculated": "183727950.0000"
+      },
+      {
+        "domain_id": 5,
+        "n": "350000",
+        "calculated": "183731625.0000"
+      },
+      {
+        "domain_id": 6,
+        "n": "350000",
+        "calculated": "183735300.0000"
+      },
+      {
+        "domain_id": 7,
+        "n": "350000",
+        "calculated": "183738975.0000"
+      },
+      {
+        "domain_id": 8,
+        "n": "350000",
+        "calculated": "183742650.0000"
+      },
+      {
+        "domain_id": 9,
+        "n": "350000",
+        "calculated": "183746325.0000"
+      },
+      {
+        "domain_id": 10,
+        "n": "350000",
+        "calculated": "183750000.0000"
+      },
+      {
+        "domain_id": 11,
+        "n": "350000",
+        "calculated": "183753675.0000"
+      },
+      {
+        "domain_id": 12,
+        "n": "350000",
+        "calculated": "183757350.0000"
+      },
+      {
+        "domain_id": 13,
+        "n": "350000",
+        "calculated": "183761025.0000"
+      },
+      {
+        "domain_id": 14,
+        "n": "350000",
+        "calculated": "183764700.0000"
+      },
+      {
+        "domain_id": 15,
+        "n": "350000",
+        "calculated": "183768375.0000"
+      },
+      {
+        "domain_id": 16,
+        "n": "350000",
+        "calculated": "183772050.0000"
+      },
+      {
+        "domain_id": 17,
+        "n": "350000",
+        "calculated": "183775725.0000"
+      },
+      {
+        "domain_id": 18,
+        "n": "350000",
+        "calculated": "183779400.0000"
+      },
+      {
+        "domain_id": 19,
+        "n": "350000",
+        "calculated": "183783075.0000"
+      }
+    ]
+  },
+  {
+    "label": "reopened",
+    "milliseconds": 103,
+    "rows": [
+      {
+        "n": "70000000",
+        "cdes": "7000000"
+      }
+    ]
+  },
+  {
+    "label": "curation",
+    "milliseconds": 9,
+    "rows": [
+      {
+        "Count": "1"
+      }
+    ]
+  },
+  {
+    "label": "export",
+    "bytes": 432812032,
+    "milliseconds": 329
+  },
+  {
+    "label": "native-verification",
+    "rows": [
+      {
+        "n": "70000000",
+        "cdes": "7000000"
+      }
+    ]
+  }
+]

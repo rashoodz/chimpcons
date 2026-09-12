@@ -1,4 +1,5 @@
 import {
+  Database,
   FileSearch,
   FileStack,
   GitMerge,
@@ -23,7 +24,7 @@ import {
 
 export type SurfaceStatus = "works" | "planned" | "none";
 
-export type ToolCategory = "Excel" | "PDF" | "PowerPoint";
+export type ToolCategory = "Excel" | "PDF" | "PowerPoint" | "Database";
 
 /**
  * The browser surface carries its route only when it works, so a card, tab,
@@ -198,6 +199,21 @@ export const TOOLS: readonly ConsultTool[] = [
     },
     icon: ShieldOff,
   },
+  {
+    slug: "data-workspace",
+    category: "Database",
+    title: "Import workbooks into a database",
+    tabLabel: "Database",
+    description:
+      "Create persistent SQLite or DuckDB files, review Excel imports, and retain source captures and delivery history locally",
+    docHref: "/docs/tools/data-workspace",
+    surfaces: {
+      cli: "works",
+      library: "works",
+      browser: { status: "works", href: "/workspace" },
+    },
+    icon: Database,
+  },
 ] as const;
 
 export const BROWSER_TOOLS: readonly BrowserTool[] =
@@ -212,6 +228,7 @@ const TOOL_CATEGORY_ORDER: readonly ToolCategory[] = [
   "Excel",
   "PDF",
   "PowerPoint",
+  "Database",
 ];
 
 /**

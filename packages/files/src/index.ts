@@ -4,6 +4,18 @@ import path from "node:path";
 import { ConsultChimpsError } from "@consultchimps/core";
 import fg from "fast-glob";
 
+export {
+  createScratchDirectory,
+  openRandomAccessSource,
+  type FileSource,
+  type ScratchDirectory,
+} from "./random-access.js";
+export {
+  planFilePublication,
+  publishStagedFile,
+  type FilePublicationPlan,
+} from "./publication.js";
+
 /**
  * Stable, published error codes thrown by @consultchimps/files. Values are
  * part of the versioned public API; never change an existing value.

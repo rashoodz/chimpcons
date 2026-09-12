@@ -6,7 +6,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Online tools",
   description:
-    "Run ConsultChimps document tools directly in your browser. Files never leave your machine: everything happens in this tab.",
+    "Run local document operations and manage persistent SQLite or DuckDB databases in your browser.",
 };
 
 const guideOnlyTools = TOOLS.filter((tool) => !isBrowserTool(tool));
@@ -20,13 +20,11 @@ export default function Page() {
           Run a tool right here
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-fd-muted-foreground">
-          These tools run entirely in your browser tab. Your files are never
-          uploaded, and each tool runs the same operation code as the
-          ConsultChimps command line and libraries, so identical inputs and
-          options produce the same file contents. What differs is naming and a
-          few interface defaults: the browser hands you downloads instead of
-          writing into a folder you choose. Each guide notes where its online
-          tool differs
+          These tools process your files locally using operation code shared
+          with the ConsultChimps command line and libraries. Document tools
+          produce downloads. The database workspace keeps a persistent browser
+          working copy and exports a separate file. Each guide explains its
+          storage, naming, and interface defaults
         </p>
 
         <div className="mt-10 space-y-14">
@@ -38,7 +36,7 @@ export default function Page() {
               <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
                   <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-fd-primary">
-                    Document type
+                    Category
                   </p>
                   <h2
                     className="mt-2 text-2xl font-bold tracking-[-0.03em]"

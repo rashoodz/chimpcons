@@ -5,16 +5,16 @@ const { version } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8"),
 ) as { version: string };
 
-// Builds the standalone single-file CLI attached to GitHub releases. Every
-// runtime dependency is compiled in so `node consultchimps.mjs` performs no
-// package resolution at all (only `node:` builtins remain external), for
-// environments that have Node.js (22+) but no npm access.
+// Native database bindings are installed beside this entry in the portable
+// archive. Its Node major, operating system, and architecture identify the ABI.
 export default defineConfig({
   entry: { consultchimps: "src/index.ts" },
   format: "esm",
   outDir: "dist-bundle",
-  noExternal: [/.*/],
+  noExternal: [/^(?!better-sqlite3(?:\/|$)|@duckdb\/node-api(?:\/|$)).*/],
+  external: ["better-sqlite3", "@duckdb/node-api"],
   splitting: false,
+  metafile: true,
   clean: true,
   outExtension: () => ({ js: ".mjs" }),
   define: {
